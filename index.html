@@ -1,0 +1,2016 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>શ્રી પ્રગતિ ગણેશ યુવક મંડળ - લાઈવ હિસાબ</title>
+    
+    <link rel="manifest" href='data:application/manifest+json,{"name":"શ્રી પ્રગતિ ગણેશ મંડળ એપ","short_name":"ગણેશ મંડળ","start_url":"./","display":"standalone","background_color":"%23f8fafc","theme_color":"%23ea580c","orientation":"portrait"}'>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
+    <!-- Added Gujarati Font to fix missing text like 'ર્' in 'અર્જુન' -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <!-- PDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #ea580c;
+            --primary-dark: #c2410c;
+            --bg-main: #f8fafc;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        * { box-sizing: border-box; }
+        body { font-family: 'Noto Sans Gujarati', system-ui, -apple-system, sans-serif; background-color: var(--bg-main); margin: 0; padding: 0; color: var(--text-dark); }
+        
+        .header { background: linear-gradient(135deg, #ea580c, #c2410c); color: white; text-align: center; padding: 18px 15px 15px 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); position: sticky; top: 0; z-index: 50; }
+        .header-content { position: relative; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .menu-dot-btn { position: absolute; right: 0; top: 0; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 18px; cursor: pointer; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .menu-dot-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.3); }
+        
+        .dropdown-menu { display: none; position: absolute; right: 0; top: 45px; background-color: white; min-width: 240px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border-radius: 12px; z-index: 100; max-height: 75vh; overflow-y: auto; border: 1px solid #e2e8f0; animation: fadeIn 0.15s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .dropdown-menu button { color: var(--text-dark); padding: 12px 16px; text-decoration: none; display: flex; align-items: center; gap: 12px; width: 100%; border: none; background: none; text-align: left; font-size: 14px; font-weight: 600; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+        .dropdown-menu button:last-child { border-bottom: none; }
+        .dropdown-menu button:hover { background-color: #f8fafc; color: var(--primary); }
+        
+        .logo-container { width: 75px; height: 75px; margin: 0 auto 8px auto; border-radius: 50%; background-color: white; border: 3px solid #ffedd5; display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .logo-container img { width: 100%; height: 100%; object-fit: cover; }
+        .header h1 { margin: 0; font-size: 20px; font-weight: 800; }
+        .header p { margin: 4px 0 0 0; font-size: 12px; color: #ffedd5; font-weight: 500; }
+        
+        .container { max-width: 600px; margin: 0 auto; padding: 15px; padding-bottom: 90px; }
+        
+        .year-box { background: white; padding: 12px 16px; border-radius: 12px; box-shadow: var(--card-shadow); margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #edf2f7; }
+        .year-label { font-weight: 700; color: var(--text-dark); font-size: 14px; display: flex; align-items: center; gap: 6px; }
+        .year-input { padding: 6px 12px; border-radius: 8px; border: 2px solid var(--primary); font-weight: 800; color: var(--primary); background: white; font-size: 15px; width: 90px; text-align: center; outline: none; }
+        
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+        .card { background: white; padding: 14px 12px; border-radius: 14px; box-shadow: var(--card-shadow); text-align: center; border: 1px solid #f1f5f9; }
+        .card p { margin: 0; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .card h2 { margin: 4px 0 0 0; font-size: 20px; font-weight: 800; }
+        
+        .c-orange { border-bottom: 4px solid #ea580c; }
+        .c-green { border-bottom: 4px solid #16a34a; color: #16a34a; }
+        .c-blue { border-bottom: 4px solid #2563eb; color: #2563eb; }
+        .c-red { border-bottom: 4px solid #dc2626; color: #dc2626; }
+        .c-purple { border-bottom: 4px solid #9333ea; color: #9333ea; }
+        .c-teal { border-bottom: 4px solid #0d9488; color: #0d9488; }
+        .c-pink { border-bottom: 4px solid #e11d48; color: #e11d48; }
+        .c-amber { border-bottom: 4px solid #d97706; color: #d97706; }
+        .c-yellow { border-bottom: 4px solid #ca8a04; color: #ca8a04; }
+        
+        .search-box { background: white; padding: 14px; border-radius: 14px; box-shadow: var(--card-shadow); margin-bottom: 20px; border: 1px solid #f1f5f9; }
+        .search-input-wrapper { position: relative; width: 100%; }
+        .search-input-wrapper i { position: absolute; left: 12px; top: 12px; color: #94a3b8; font-size: 14px; }
+        .search-input { width: 100%; padding: 10px 12px 10px 36px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; }
+        .search-input:focus { border-color: var(--primary); }
+        
+        .filter-buttons { display: flex; gap: 8px; margin-top: 10px; }
+        .btn-filter { flex: 1; padding: 8px; font-size: 13px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; background-color: #f1f5f9; color: var(--text-muted); transition: 0.2s; }
+        .btn-filter.active { background-color: var(--primary); color: white; }
+        
+        .section-box { background: white; border-radius: 14px; box-shadow: var(--card-shadow); margin-bottom: 20px; overflow: hidden; border: 1px solid #f1f5f9; }
+        .section-title { padding: 12px 16px; background: #fafafa; font-weight: 700; font-size: 14px; color: var(--text-dark); border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+        .list-container { max-height: 460px; overflow-y: auto; }
+        .row-item { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f8fafc; font-size: 14px; }
+        .row-item:last-child { border-bottom: none; }
+        
+        .badge-paid { background-color: #f0fdf4; color: #16a34a; font-weight: 700; padding: 5px 12px; border-radius: 20px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: 1px solid #bbf7d0; }
+        .btn-admin-pay { background-color: #fef9c3; color: #a16207; font-weight: 700; padding: 5px 12px; border: none; border-radius: 20px; font-size: 12px; cursor: pointer; }
+
+        .btn-add-item { background-color: var(--primary); color: white; padding: 6px 14px; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .btn-pdf { background-color: #2563eb; color: white; padding: 6px 12px; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        
+        .action-icon-btn { border: none; border-radius: 6px; padding: 5px 8px; cursor: pointer; color: white; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; }
+        .btn-del { background-color: #ef4444 !important; } 
+        .btn-edt { background-color: #d97706 !important; } 
+        .btn-view-bill { background-color: #0284c7; color: white; border: none; border-radius: 6px; padding: 4px 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-right: 6px; }
+
+        .admin-panel { background: #fffbeb; border: 1px solid #fef3c7; padding: 15px; border-radius: 14px; text-align: center; margin-bottom: 25px; }
+        .admin-panel h3 { margin: 0 0 12px 0; font-size: 13px; color: #92400e; font-weight: 700; }
+        .flex-buttons { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+        .btn-action { padding: 8px 14px; font-size: 12px; font-weight: 700; border: none; border-radius: 8px; color: white; cursor: pointer; transition: 0.2s; }
+        .btn-action:active { transform: scale(0.97); }
+        .bg-green { background-color: #16a34a; }
+        .bg-amber { background-color: #d97706; }
+        .bg-gray { background-color: #475569; }
+        .bg-red { background-color: #dc2626; }
+        .bg-purple { background-color: #9333ea; }
+        .bg-blue { background-color: #2563eb; }
+        .bg-teal { background-color: #0d9488; }
+        
+        .hidden-admin { display: none !important; }
+        #hidden-logo-file-input { display: none; }
+        
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(3px); z-index: 200; justify-content: center; align-items: center; }
+        .modal-box { background: white; width: 92%; max-width: 480px; border-radius: 16px; padding: 20px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); position: relative; }
+        .modal-close-btn { position: absolute; top: 15px; right: 15px; background: #f1f5f9; border: none; border-radius: 50%; width: 30px; height: 30px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
+        
+        .subpage-card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 12px; margin-bottom: 10px; box-shadow: var(--card-shadow); }
+        .subpage-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .subpage-content { background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 8px; padding: 10px; font-size: 14px; line-height: 1.6; color: var(--text-dark); white-space: pre-wrap; }
+        .modal-title-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px; width: 100%; padding-right: 35px; }
+    </style>
+</head>
+<body>
+
+    <div id="mandal-app-content">
+        <div class="header">
+            <div class="header-content">
+                <button onclick="toggleDropdownMenu()" class="menu-dot-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                
+                <div id="mandal-dropdown" class="dropdown-menu">
+                    <button onclick="openPage('prasad-page')"><i class="fa-solid fa-utensils" style="color: #c2410c;"></i> 🥞 પ્રસાદની વારી યાદી</button>
+                    <button onclick="openPage('notebook-page')"><i class="fa-solid fa-book" style="color: #9333ea;"></i> 📔 નોટબુક (ખાસ નોંધ)</button>
+                    <button onclick="openPage('tshirt-page')"><i class="fa-solid fa-shirt" style="color: #2563eb;"></i> 👕 ટી-શર્ટ / કુર્તા સાઇઝ</button>
+                    <button onclick="openPage('arti-page')"><i class="fa-solid fa-music" style="color: #ea580c;"></i> 🎵 આરતી અને થાળ</button>
+                    
+                    <!-- બધા અલગ અલગ PDF બટનો -->
+                    <button onclick="downloadMembersPDF()"><i class="fa-solid fa-users" style="color: #ea580c;"></i> 👥 સભ્યોની યાદી PDF</button>
+                    <button onclick="downloadHousePDF()"><i class="fa-solid fa-house-chimney" style="color: #0f766e;"></i> 🏡 ઘર ફાળાની PDF</button>
+                    <button onclick="downloadDonorPDF()"><i class="fa-solid fa-gift" style="color: #16a34a;"></i> 🎁 દાન દાતાઓની PDF</button>
+                    <button onclick="downloadFullReportPDF()"><i class="fa-solid fa-file-pdf" style="color: #2563eb;"></i> 📊 આખા ચોપડાની PDF</button>
+                    
+                    <button onclick="showAppDownloadGuide()"><i class="fa-solid fa-mobile-screen-button" style="color: #64748b;"></i> એપ ડાઉનલોડ કરો</button>
+                </div>
+
+                <div class="logo-container">
+                    <img id="mandal-logo-img" src="logo.jpg" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23ea580c\'><path d=\'M12 2a10 10 0 1010 10A10 10 0 0012 2zm0 18a8 8 0 118-8 8 8 0 01-8 8z\'/><circle cx=\'12\' cy=\'12\' r=\'4\' fill=\'%23ea580c\'/></svg>';">
+                </div>
+                <h1>🙏 શ્રી પ્રગતિ ગણેશ યુવક મંડળ 🙏</h1>
+                <p id="sync-status">🚀 ઉત્સવ ચાલુ વર્ષ લાઈવ ડેટા એક્ટિવ!</p>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="year-box">
+                <span class="year-label"><i class="fa-solid fa-calendar-days" style="color:#ea580c;"></i> ઉત્સવનું વર્ષ લખો:</span>
+                <input type="text" id="year-input" class="year-input" value="" maxlength="4">
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="grid" id="dashboard-grid">
+                <div class="card c-amber fin-card"><p>ગયા વર્ષની બચત</p><h2 id="prev-year-balance">₹0</h2></div>
+                <div class="card c-orange fin-card" id="card-total-members"><p>કુલ સભ્યો</p><h2 id="total-members-count">0</h2></div>
+                <div class="card c-green fin-card" id="card-paid-count"><p>જમા સભ્યો</p><h2 id="paid-count">0</h2></div>
+                <div class="card c-blue fin-card"><p>સભ્યોનો ચંદો</p><h2 id="total-collection">₹0</h2></div>
+                <div class="card c-teal fin-card"><p>ઘર દીઠ ફાળો</p><h2 id="total-house-funds">₹0</h2></div>
+                <div class="card c-pink fin-card"><p>કુલ દાન</p><h2 id="total-donations">₹0</h2></div>
+                <div class="card c-yellow fin-card"><p>આરતી/દાન પેટી</p><h2 id="total-box-income">₹0</h2></div>
+                <div class="card c-green fin-card"><p>જમા ઘર</p><h2 id="paid-house-count">0</h2></div>
+                <div class="card c-red fin-card" style="grid-column: span 2;"><p>ચાલુ વર્ષનો કુલ ખર્ચ</p><h2 id="total-expenses">₹0</h2></div>
+                <div class="card c-purple fin-card" style="grid-column: span 2;"><p>કુલ કેશ બેલેન્સ</p><h2 id="net-balance">₹0</h2></div>
+            </div>
+
+            <div class="search-box" id="search-filter-area">
+                <div class="search-input-wrapper">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="search-input" placeholder="શોધો..." class="search-input">
+                </div>
+                <div class="filter-buttons">
+                    <button onclick="filterMembers('all')" id="btn-all" class="btn-filter active">બધા સભ્યો</button>
+                    <button onclick="filterMembers('paid')" id="btn-paid" class="btn-filter">જમા</button>
+                    <button onclick="filterMembers('pending')" id="btn-pending" class="btn-filter">બાકી</button>
+                </div>
+            </div>
+
+            <div class="section-box">
+                <div class="section-title"><span>👤 સભ્યવાર ચંદાની વિગત</span></div>
+                <div id="members-list" class="list-container"></div>
+            </div>
+
+            <div class="section-box" style="border: 1px solid #ccfbf1;">
+                <div class="section-title" style="background: #f0fdf4; color: #0f766e;">
+                    <span><i class="fa-solid fa-house-chimney mr-1"></i> 🏡 ઘર દીઠ ફાળાની વિગત</span>
+                    <button onclick="addHouseFund()" id="add-house-btn" class="btn-add-item hidden-admin">➕ ઉમેરો</button>
+                </div>
+                <div id="house-list" class="list-container"></div>
+            </div>
+
+            <div class="section-box" style="border: 1px solid #fce7f3;">
+                <div class="section-title" style="background: #fdf2f8; color: #16a34a;">
+                    <span><i class="fa-solid fa-gift mr-1"></i> 🎁 દાન દાતાઓની વિગત</span>
+                    <button onclick="openDonorModal()" id="add-don-btn" class="btn-add-item hidden-admin">➕ ઉમેરો</button>
+                </div>
+                <div id="donors-list" class="list-container"></div>
+            </div>
+
+            <div class="section-box" id="box-section-container" style="border: 1px solid #fef08a;">
+                <div class="section-title" style="background: #fef9c3; color: #854d0e;">
+                    <span><i class="fa-solid fa-box-open mr-1"></i> 🛕 આરતી અને દાન પેટી વિગત</span>
+                    <button onclick="openBoxModal()" id="add-box-btn" class="btn-add-item hidden-admin" style="background-color: #ca8a04;">➕ ઉમેરો</button>
+                </div>
+                <div id="box-list" class="list-container"></div>
+            </div>
+
+            <div class="section-box" id="expense-section-container" style="border: 1px solid #fee2e2;">
+                <div class="section-title expense-head">
+                    <span><i class="fa-solid fa-wallet mr-1"></i> 💸 ખર્ચની વિગતો</span>
+                    <button onclick="openExpenseModal()" id="add-exp-btn" class="btn-add-item hidden-admin">➕ ઉમેરો</button>
+                </div>
+                <div id="expenses-list" class="list-container"></div>
+            </div>
+
+            <div class="admin-panel" id="admin-control-area">
+                <h3 id="admin-title">🔒 પબ્લિક મોડ (રીડ-ઓન્લી)</h3>
+                <div class="flex-buttons">
+                    <button onclick="toggleAdminMode()" id="login-toggle-btn" class="btn-action bg-gray">🔐 એડમિન લોક ખોલો</button>
+                    <button onclick="openBulkAddModal('members')" id="bulk-add-btn" class="btn-action bg-blue hidden-admin">👥 એકસાથે સભ્યો</button>
+                    <button onclick="openBulkAddModal('house')" id="bulk-add-house-btn" class="btn-action bg-teal hidden-admin">🏡 એકસાથે ઘર</button>
+                    <button onclick="toggleFinancialVisibility()" id="hide-fin-btn" class="btn-action bg-gray hidden-admin">👁️ પબ્લિકથી આંકડા છુપાવો</button>
+                    <button onclick="addNewMember()" id="add-mem-btn" class="btn-action bg-green hidden-admin">નવો સભ્ય ઉમેરો</button>
+                    <button onclick="handleSmartNameEdit()" id="edit-mem-btn" class="btn-action bg-amber hidden-admin">નામ સુધારો</button>
+                    <button onclick="copyDataFromPreviousYear()" id="copy-mem-btn" class="btn-action bg-teal hidden-admin">📋 પાછલા વર્ષનો ડેટા કોપી કરો</button>
+                    <button onclick="triggerLogoUpload()" id="change-logo-btn" class="btn-action bg-blue hidden-admin">🖼️ લોગો બદલો</button>
+                    <button onclick="changeAdminPassword()" id="change-pass-btn" class="btn-action bg-purple hidden-admin">🔑 પાસવર્ડ બદલો</button>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 30px; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px; opacity: 0.85;">
+                    <span style="font-size: 11px; font-weight: 700; color: #64748b;">Developed by</span>
+                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; background-color: #0f172a; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                        <div style="display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; background-color: white; border-radius: 50%; font-weight: 900; font-family: sans-serif; color: #0f172a; font-size: 13px; letter-spacing: -0.5px;">NH</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="hidden-logo-file-input" accept="image/*" onchange="handleLogoFileSelect(event)">
+
+    <!-- પેજ: ટી-શર્ટ -->
+    <div id="tshirt-page" style="display: none; min-height: 100vh; background-color: #f8fafc; padding-bottom: 50px;">
+        <div class="header" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); position: sticky; top: 0; z-index: 50; padding: 15px;">
+            <div style="display: flex; align-items: center; max-width: 600px; margin: 0 auto; justify-content: space-between;">
+                <button onclick="closePage()" style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px;"><i class="fa-solid fa-arrow-left"></i> પાછા</button>
+                <h2 style="margin: 0; color: white; font-size: 17px; font-weight: 800;">👕 ટી-શર્ટ/કુર્તા</h2>
+                <button onclick="downloadTshirtPDF()" class="btn-pdf" style="background: white; color: #2563eb;"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+            </div>
+        </div>
+        <div class="container">
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin:0; font-size: 15px; color: #1e3a8a;">સભ્યવાર સાઇઝ અને વિગત</h3>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+                    <button onclick="toggleTshirtAdminMode()" id="tshirt-login-btn" style="background: #475569; color: white; border: none; border-radius: 6px; padding: 6px 10px; font-size: 12px; font-weight: bold; cursor: pointer;">🔐 લોક ખોલો</button>
+                    <button onclick="changeTshirtPassword()" id="tshirt-pass-btn" class="hidden-admin" style="background: #9333ea; color: white; border: none; border-radius: 6px; padding: 6px 10px; font-size: 12px; font-weight: bold; cursor: pointer; display: none;"><i class="fa-solid fa-key"></i> પાસવર્ડ</button>
+                    <button onclick="addTshirt()" id="tshirt-add-btn" class="btn-add-item hidden-admin" style="background: #2563eb; display: none;">➕ ઉમેરો</button>
+                </div>
+            </div>
+            <div class="search-box" style="padding: 10px; margin-bottom: 15px;">
+                <div class="search-input-wrapper">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="tshirt-search-input" placeholder="શોધો..." class="search-input" oninput="tshirtSearchQuery = this.value; renderTshirtList();">
+                </div>
+            </div>
+            <div id="tshirt-summary-container"></div>
+            <div id="tshirt-list"></div>
+        </div>
+    </div>
+
+    <!-- પેજ: પ્રસાદ -->
+    <div id="prasad-page" style="display: none; min-height: 100vh; background-color: #f8fafc; padding-bottom: 50px;">
+        <div class="header" style="background: linear-gradient(135deg, #ea580c, #c2410c); position: sticky; top: 0; z-index: 50; padding: 15px;">
+            <div style="display: flex; align-items: center; max-width: 600px; margin: 0 auto; justify-content: space-between;">
+                <button onclick="closePage()" style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px;"><i class="fa-solid fa-arrow-left"></i> પાછા</button>
+                <h2 style="margin: 0; color: white; font-size: 17px; font-weight: 800;">🥞 પ્રસાદની યાદી</h2>
+                <button onclick="downloadPrasadPDF()" class="btn-pdf" style="background: white; color: #ea580c;"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+            </div>
+        </div>
+        <div class="container">
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin:0; font-size: 15px; color: #9a3412; font-weight: bold;">યજમાનોની વિગત</h3>
+                <button onclick="openTextModal('prasad')" id="add-prasad-btn-page" class="btn-add-item hidden-admin">➕ ઉમેરો</button>
+            </div>
+            <div class="search-box" style="padding: 10px; margin-bottom: 15px;">
+                <div class="search-input-wrapper">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="શોધો..." class="search-input" oninput="prasadSearchQuery = this.value; renderPrasadList();">
+                </div>
+            </div>
+            <div id="prasad-list"></div>
+        </div>
+    </div>
+
+    <!-- પેજ: નોટબુક -->
+    <div id="notebook-page" style="display: none; min-height: 100vh; background-color: #f8fafc; padding-bottom: 50px;">
+        <div class="header" style="background: linear-gradient(135deg, #9333ea, #7e22ce); position: sticky; top: 0; z-index: 50; padding: 15px;">
+            <div style="display: flex; align-items: center; max-width: 600px; margin: 0 auto; justify-content: space-between;">
+                <button onclick="closePage()" style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px;"><i class="fa-solid fa-arrow-left"></i> પાછા</button>
+                <h2 style="margin: 0; color: white; font-size: 17px; font-weight: 800;">📔 નોટબુક નોંધ</h2>
+                <button onclick="downloadNotebookPDF()" class="btn-pdf" style="background: white; color: #9333ea;"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+            </div>
+        </div>
+        <div class="container">
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin:0; font-size: 15px; color: #6b21a8; font-weight: bold;">મંડળની ખાસ નોંધો</h3>
+                <button onclick="openTextModal('notebook')" id="add-note-btn-page" class="btn-add-item hidden-admin" style="background-color: #9333ea;">➕ ઉમેરો</button>
+            </div>
+            <div class="search-box" style="padding: 10px; margin-bottom: 15px;">
+                <div class="search-input-wrapper">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="શોધો..." class="search-input" oninput="notebookSearchQuery = this.value; renderNotebookList();">
+                </div>
+            </div>
+            <div id="notebook-list"></div>
+        </div>
+    </div>
+
+    <!-- પેજ: આરતી -->
+    <div id="arti-page" style="display: none; min-height: 100vh; background-color: #f8fafc; padding-bottom: 50px;">
+        <div class="header" style="background: linear-gradient(135deg, #ea580c, #c2410c); position: sticky; top: 0; z-index: 50; padding: 15px;">
+            <div style="display: flex; align-items: center; max-width: 600px; margin: 0 auto; justify-content: space-between;">
+                <button onclick="closePage()" style="background: rgba(255,255,255,0.2); border: none; color: white; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px;"><i class="fa-solid fa-arrow-left"></i> પાછા</button>
+                <h2 style="margin: 0; color: white; font-size: 17px; font-weight: 800;">🎵 આરતી/થાળ</h2>
+                <button onclick="downloadArtiPDF()" class="btn-pdf" style="background: white; color: #ea580c;"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+            </div>
+        </div>
+        <div class="container">
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin:0; font-size: 15px; color: #9a3412; font-weight: bold;">આરતીની યાદી</h3>
+                <button onclick="openTextModal('arti')" id="add-arti-btn-page" class="btn-add-item hidden-admin">➕ ઉમેરો</button>
+            </div>
+            <div class="search-box" style="padding: 10px; margin-bottom: 15px;">
+                <div class="search-input-wrapper">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="શોધો..." class="search-input" oninput="artiSearchQuery = this.value; renderArtiList();">
+                </div>
+            </div>
+            <div id="arti-list"></div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Box Income Modal -->
+    <div id="box-modal" class="modal-overlay" style="z-index: 310;">
+        <div class="modal-box">
+            <button class="modal-close-btn" onclick="closeBoxModal()">×</button>
+            <div class="modal-title-bar" style="border-bottom-color: #ca8a04;">
+                <h3 id="box-modal-title" style="margin: 0; color: #ca8a04; font-size: 16px;">🛕 વિગત ઉમેરો</h3>
+            </div>
+            <input type="text" id="box-title-input" placeholder="વિગત (દા.ત. આજની આરતી, દાન પેટી)..." style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;">
+            <input type="number" id="box-amount-input" placeholder="રકમ (₹)..." style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;">
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button onclick="closeBoxModal()" style="padding: 9px 15px; background: #e2e8f0; color: var(--text-dark); border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">કેન્સલ</button>
+                <button onclick="saveBoxData()" style="padding: 9px 15px; background: #ca8a04; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">✅ સેવ કરો</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="expense-modal" class="modal-overlay" style="z-index: 310;">
+        <div class="modal-box">
+            <button class="modal-close-btn" onclick="closeExpenseModal()">×</button>
+            <div class="modal-title-bar" style="border-bottom-color: #dc2626;">
+                <h3 id="expense-modal-title" style="margin: 0; color: #dc2626; font-size: 16px;">💸 ખર્ચ ઉમેરો</h3>
+            </div>
+            <input type="text" id="exp-title-input" placeholder="ખર્ચની વિગત (કારણ)..." style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;">
+            <input type="number" id="exp-amount-input" placeholder="ખર્ચની રકમ (₹)..." style="width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;">
+            
+            <div style="background: #f8fafc; border: 1px dashed #cbd5e1; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+                <label style="font-size: 13px; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;">📷 બિલ/રસીદનો ફોટો જોડો:</label>
+                <input type="file" id="exp-bill-input" accept="image/*" onchange="previewBillImage(event)" style="font-size: 12px; width: 100%;">
+                <div id="bill-preview-container" style="display: none; margin-top: 10px;">
+                    <img id="bill-preview-img" src="" style="max-height: 140px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                    <button type="button" onclick="removeBillPhoto()" style="display: block; margin: 6px auto 0; background: #fee2e2; color: #dc2626; border: none; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer;">❌ ફોટો હટાવો</button>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button onclick="closeExpenseModal()" style="padding: 9px 15px; background: #e2e8f0; color: var(--text-dark); border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">કેન્સલ</button>
+                <button onclick="saveExpenseData()" style="padding: 9px 15px; background: #dc2626; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">✅ સેવ કરો</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="donor-modal" class="modal-overlay" style="z-index: 310;">
+        <div class="modal-box">
+            <button class="modal-close-btn" onclick="closeDonorModal()">×</button>
+            <div class="modal-title-bar" style="border-bottom-color: #16a34a;">
+                <h3 id="donor-modal-title" style="margin: 0; color: #16a34a; font-size: 16px;">🎁 દાન દાતા વિગત</h3>
+            </div>
+            <input type="text" id="donor-name-input" placeholder="દાન દાતાનું નામ..." style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;">
+            <input type="number" id="donor-amount-input" placeholder="દાનની રકમ (₹)..." style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;">
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button onclick="closeDonorModal()" style="padding: 9px 15px; background: #e2e8f0; color: var(--text-dark); border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">કેન્સલ</button>
+                <button onclick="saveDonorData()" style="padding: 9px 15px; background: #16a34a; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">✅ સેવ કરો</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="image-viewer-modal" class="modal-overlay" style="z-index: 400;" onclick="closeImageViewer()">
+        <div style="position: relative; max-width: 90%; max-height: 90vh;" onclick="event.stopPropagation();">
+            <button onclick="closeImageViewer()" style="position: absolute; right: -10px; top: -15px; background: #dc2626; color: white; border: none; border-radius: 50%; width: 34px; height: 34px; font-size: 18px; font-weight: bold; cursor: pointer;">×</button>
+            <img id="viewer-img" src="" style="width: 100%; max-height: 80vh; border-radius: 12px; object-fit: contain; background: white;">
+            <div id="viewer-title" style="text-align: center; color: white; font-weight: 700; margin-top: 10px; font-size: 15px;"></div>
+        </div>
+    </div>
+
+    <div id="text-input-modal" class="modal-overlay" style="z-index: 300;">
+        <div class="modal-box">
+            <button class="modal-close-btn" onclick="closeTextModal()">×</button>
+            <div class="modal-title-bar" style="border-bottom-color: #ea580c;">
+                <h3 id="text-modal-header" style="margin: 0; color: #ea580c; font-size: 16px;">લખાણ ઉમેરો</h3>
+            </div>
+            <input type="text" id="text-modal-input1" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;">
+            <input type="text" id="text-modal-input2" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;">
+            <textarea id="text-modal-textarea" style="width: 100%; height: 220px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; resize: vertical;"></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                <button onclick="closeTextModal()" style="padding: 9px 15px; background: #e2e8f0; color: var(--text-dark); border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">કેન્સલ</button>
+                <button onclick="saveTextModalData()" style="padding: 9px 15px; background: #ea580c; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">✅ સેવ કરો</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bulk-add-modal" class="modal-overlay" style="z-index: 300;">
+        <div class="modal-box">
+            <button class="modal-close-btn" onclick="closeBulkAddModal()">×</button>
+            <div class="modal-title-bar" style="border-bottom-color: #2563eb;">
+                <h3 id="bulk-add-title" style="margin: 0; color: #1e40af; font-size: 16px;"><i class="fa-solid fa-users"></i> એકસાથે સભ્યો ઉમેરો</h3>
+            </div>
+            <p id="bulk-add-desc" style="font-size: 13px; color: var(--text-muted); margin-top: 0;">નીચેના બોક્સમાં નામ લખો અથવા કોપી કરીને પેસ્ટ કરો. (દરેક નામ નવી લાઈનમાં હોવું જોઈએ).</p>
+            <textarea id="bulk-add-textarea" style="width: 100%; height: 260px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; resize: vertical;" placeholder="નામ ૧&#10;નામ ૨&#10;નામ ૩..."></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                <button onclick="closeBulkAddModal()" style="padding: 9px 15px; background: #e2e8f0; color: var(--text-dark); border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">કેન્સલ</button>
+                <button onclick="saveBulkMembers()" style="padding: 9px 15px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">✅ બધા સેવ કરો</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAh2lcxstR_mTQQI-pabY77ug9MWK9x4m4",
+            authDomain: "pragati-ganesh-mandal.firebaseapp.com",
+            projectId: "pragati-ganesh-mandal",
+            storageBucket: "pragati-ganesh-mandal.firebasestorage.app",
+            messagingSenderId: "306990038856",
+            appId: "1:306990038856:web:173fd8795068bc14a9fd7d"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let currentAdminPassword = "9680"; 
+        let currentTshirtPassword = "9680"; 
+        let isAdmin = false;
+        let isTshirtAdmin = false; 
+        
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let tshirtSearchQuery = ''; 
+        let prasadSearchQuery = ''; 
+        let notebookSearchQuery = ''; 
+        let artiSearchQuery = ''; 
+        let hideFinancials = false;
+        let currentBulkType = 'members';
+        let currentModalType = ''; 
+        let currentEditId = null;
+        
+        let currentExpEditId = null;
+        let currentDonorEditId = null;
+        let currentExpBillData = "";
+        
+        let localBoxIncome = [];
+        let currentBoxEditId = null;
+        let unsubBoxIncome = null;
+        
+        let currentLiveYear = new Date().getFullYear().toString();
+        let selectedYear = currentLiveYear; 
+        document.getElementById('year-input').value = currentLiveYear;
+
+        let localMembers = [], localExpenses = [], localDonors = [], localHouseFunds = [], localPrasadVari = [], localNotebookNotes = [], localArtiList = [], localTshirtList = [];
+        let prevYearSavedBalance = 0;
+        let unsubMembers = null, unsubExpenses = null, unsubDonors = null, unsubHouseFunds = null, unsubPrasad = null, unsubSettings = null, unsubNotebook = null, unsubArti = null, unsubTshirt = null;
+
+        function generateGujaratiPDF(title, dataList, type, filename) {
+            const menu = document.getElementById('mandal-dropdown');
+            if(menu) menu.style.display = 'none';
+            
+            window.scrollTo(0, 0);
+
+            let oldWrapper = document.getElementById('pdf-temp-wrapper');
+            if(oldWrapper) oldWrapper.remove();
+
+            const printWrapper = document.createElement('div');
+            printWrapper.id = 'pdf-temp-wrapper';
+            printWrapper.style.cssText = 'position: absolute; top: 0; left: 0; width: 800px; background: #ffffff; padding: 20px; color: black; font-family: "Noto Sans Gujarati", sans-serif; z-index: 99999;';
+
+            let htmlStr = `
+                <style>
+                    .avoid-break {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                        display: inline-block !important;
+                        width: 100%;
+                    }
+                </style>
+                <div data-html2canvas-ignore style="text-align: center; color: #ea580c; font-size: 15px; font-weight: bold; margin-bottom: 20px; padding: 15px; background: #fff7ed; border-radius: 8px; border: 1px solid #fed7aa;">
+                    ⏳ PDF ફાઈલ બની રહી છે...<br>કૃપા કરીને રાહ જુઓ...
+                </div>
+                
+                <div style="max-width: 800px; margin: 0 auto;">
+                    <div class="avoid-break" style="text-align:center; border-bottom:3px solid #ea580c; padding-bottom:15px; margin-bottom:20px;">
+                        <h1 style="color:#ea580c; font-size:22px; margin:0 0 10px 0;">શ્રી પ્રગતિ ગણેશ યુવક મંડળ</h1>
+                        <h2 style="color:#333; font-size:16px; margin:0;">${title} (વર્ષ: ${selectedYear})</h2>
+                    </div>
+            `;
+
+            if (type === 'tshirt' && dataList.length > 0) {
+                let totalQ = 0; let totalA = 0; let sizeCountsPdf = {};
+                dataList.forEach(i => { 
+                    let q = parseInt(i.qty || 1); totalQ += q; totalA += parseInt(i.amount || 0); 
+                    let s = (i.size || "Unknown").toUpperCase().trim(); sizeCountsPdf[s] = (sizeCountsPdf[s] || 0) + q;
+                });
+
+                let sizeSummaryStrPdf = "";
+                for (const [size, count] of Object.entries(sizeCountsPdf)) {
+                    sizeSummaryStrPdf += `<span style="margin-right: 10px; background: white; padding: 3px 8px; border-radius: 4px; border: 1px solid #bfdbfe; color: #1e3a8a; display:inline-block; margin-bottom:4px;">${size}: <b style="font-size:15px;">${count}</b></span>`;
+                }
+
+                htmlStr += `
+                    <div class="avoid-break" style="background: #eff6ff; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #bfdbfe;">
+                        <div style="font-weight: bold; color: #1e3a8a; display: flex; justify-content: space-between; align-items: center; font-size: 15px; margin-bottom: 10px;">
+                            <span>👕 કુલ નંગ: ${totalQ}</span>
+                            <span>💰 કુલ રકમ: ₹${totalA}</span>
+                        </div>
+                        <div style="font-size: 14px; display: block;">
+                            ${sizeSummaryStrPdf}
+                        </div>
+                    </div>
+                `;
+            }
+
+            htmlStr += `<div style="display:block;">`;
+
+            if(dataList.length === 0) {
+                htmlStr += `<h3 style="color:#666; text-align:center;">કોઈ માહિતી નથી.</h3>`;
+            } else {
+                dataList.forEach(item => {
+                    if(type === 'prasad') {
+                        htmlStr += `<div class="avoid-break" style="border:1px solid #ccc; padding:12px 15px; border-radius:8px; background-color:#fff7ed; margin-bottom:12px;">
+                            <div style="font-weight:bold; color:#c2410c; margin-bottom:6px; font-size:15px;">📅 તારીખ/સમય: ${item.date} (${(item.id || '').toUpperCase()})</div>
+                            <div style="font-size:14px; line-height:1.6; color:#333;">${(item.name || '').replace(/,/g, ', ').replace(/\n/g, '<br>')}</div>
+                        </div>`;
+                    } else if(type === 'notebook') {
+                        htmlStr += `<div class="avoid-break" style="border:1px solid #ccc; padding:12px 15px; border-radius:8px; background-color:#f5f3ff; margin-bottom:12px;">
+                            <div style="font-weight:bold; color:#7e22ce; margin-bottom:6px; font-size:15px;">📅 ${item.date} (${(item.id || '').toUpperCase()})</div>
+                            <div style="font-size:14px; line-height:1.5; color:#333;">${(item.content || '').replace(/\n/g, '<br>')}</div>
+                        </div>`;
+                    } else if(type === 'arti') {
+                        htmlStr += `<div class="avoid-break" style="border:1px solid #ea580c; padding:15px 20px; border-radius:8px; background-color:#fff; margin-bottom:15px;">
+                            <div style="color:#ea580c; font-weight:bold; margin-top:0; margin-bottom:8px; border-bottom:1px solid #ffedd5; padding-bottom:6px; font-size:17px;">${(item.id || '').toUpperCase()}. ${item.title}</div>
+                            <div style="font-size:14px; line-height:1.6; color:#333;">${(item.lyrics || '').replace(/\n/g, '<br>')}</div>
+                        </div>`;
+                    } else if(type === 'tshirt') {
+                        let statusText = item.delivered ? "<span style='color:#16a34a; font-size:14px;'>✅ અપાઈ ગયું</span>" : "<span style='color:#dc2626; font-size:14px;'>બાકી</span>";
+                        htmlStr += `<div class="avoid-break" style="border:1px solid #93c5fd; padding:12px 15px; border-radius:8px; background-color:#eff6ff; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="width:55%; font-size:15px; font-weight:bold; color:#1e3a8a;">${(item.id || '').toUpperCase()}. ${item.name}</div>
+                            <div style="width:45%; text-align:right; font-size:13px; font-weight:bold; color:#2563eb;">👕 ${(item.size || '').toUpperCase()} (${item.qty || 1}) | ₹${item.amount || 0} | ${statusText}</div>
+                        </div>`;
+                    } else if(type === 'donor') {
+                        htmlStr += `<div class="avoid-break" style="border:1px solid #bbf7d0; padding:12px 15px; border-radius:8px; background-color:#f0fdf4; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="width:70%; font-size:15px; font-weight:bold; color:#166534;">${item.name}</div>
+                            <div style="width:30%; text-align:right; font-size:15px; font-weight:bold; color:#16a34a;">₹${item.amount}</div>
+                        </div>`;
+                    } else if(type === 'member') {
+                        let statusText = (item.status === 'paid' && parseInt(item.amount||0) > 0) ? `<span style="color:#16a34a; font-weight:bold;">₹${item.amount}</span>` : ``;
+                        htmlStr += `<div class="avoid-break" style="border:1px solid #e2e8f0; padding:12px 15px; border-radius:8px; background-color:#fff; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="width:70%; font-size:15px;"><span style="color:#64748b; font-size:13px; margin-right:8px;">${(item.id || '').toUpperCase()}</span> <span style="font-weight:bold; color:#1e293b;">${item.name}</span></div>
+                            <div style="width:30%; text-align:right; font-size:14px;">${statusText}</div>
+                        </div>`;
+                    } else if(type === 'house') {
+                        let statusText = (parseInt(item.amount||0) > 0) ? `<span style="color:#16a34a; font-weight:bold;">₹${item.amount}</span>` : ``;
+                        htmlStr += `<div class="avoid-break" style="border:1px solid #ccfbf1; padding:12px 15px; border-radius:8px; background-color:#f0fdf4; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                            <div style="width:70%; font-size:15px;"><span style="color:#64748b; font-size:13px; margin-right:8px;">${(item.id || '').toUpperCase()}</span> <span style="font-weight:bold; color:#0f766e;">${item.name}</span></div>
+                            <div style="width:30%; text-align:right; font-size:14px;">${statusText}</div>
+                        </div>`;
+                    }
+                });
+            }
+            
+            htmlStr += `</div>`; 
+
+            htmlStr += `
+                <div class="avoid-break" style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+                    <div style="display: flex; justify-content: flex-end;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 12px; font-weight: bold; color: #6b7280;">Developed by</span>
+                            <div style="display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; background-color: black; border-radius: 6px;">
+                                <div style="display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; background-color: white; border-radius: 50%; font-weight: 900; font-family: Arial, sans-serif; color: black; font-size: 13px;">NH</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+            
+            printWrapper.innerHTML = htmlStr;
+            document.body.appendChild(printWrapper);
+
+            setTimeout(() => {
+                const opt = {
+                    margin:       [0.4, 0.3, 0.4, 0.3],
+                    filename:     filename + '_' + selectedYear + '.pdf',
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { 
+                        scale: 2,
+                        useCORS: true, 
+                        scrollY: 0, 
+                        windowWidth: 800, 
+                        letterRendering: true 
+                    },
+                    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+                    pagebreak:    { mode: 'css', avoid: '.avoid-break' }
+                };
+
+                html2pdf().set(opt).from(printWrapper).save().then(() => {
+                    document.body.removeChild(printWrapper);
+                }).catch(err => {
+                    console.error("PDF Error:", err);
+                    alert("PDF બનાવવામાં ભૂલ આવી! કૃપા કરીને ફરી પ્રયાસ કરો.");
+                    if(document.body.contains(printWrapper)) document.body.removeChild(printWrapper);
+                });
+            }, 1200);
+        }
+
+        function downloadPrasadPDF() { 
+            let sorted = [...localPrasadVari].sort((a,b) => (parseInt((a.id || '').replace(/\D/g,''))||0) - (parseInt((b.id || '').replace(/\D/g,''))||0));
+            generateGujaratiPDF('🥞 પ્રસાદની વારી યાદી', sorted, 'prasad', 'Prasad_List'); 
+        }
+        function downloadNotebookPDF() { 
+            let sorted = [...localNotebookNotes].sort((a,b) => (parseInt((a.id || '').replace(/\D/g,''))||0) - (parseInt((b.id || '').replace(/\D/g,''))||0));
+            generateGujaratiPDF('📔 નોટબુક (ખાસ નોંધ)', sorted, 'notebook', 'Notebook_Notes'); 
+        }
+        function downloadArtiPDF() { 
+            let sorted = [...localArtiList].sort((a,b) => (parseInt((a.id || '').replace(/\D/g,''))||0) - (parseInt((b.id || '').replace(/\D/g,''))||0));
+            generateGujaratiPDF('🎵 આરતી અને થાળ', sorted, 'arti', 'Arti_And_Thal'); 
+        }
+        function downloadTshirtPDF() { 
+            let sorted = [...localTshirtList].sort((a,b) => (parseInt((a.id || '').replace(/\D/g,''))||0) - (parseInt((b.id || '').replace(/\D/g,''))||0));
+            generateGujaratiPDF('👕 ટી-શર્ટ અને કુર્તા સાઇઝ યાદી', sorted, 'tshirt', 'Tshirt_Size_List'); 
+        }
+        function downloadDonorPDF() { 
+            let sorted = [...localDonors].sort((a,b) => (parseInt((a.id || '').replace(/\D/g,''))||0) - (parseInt((b.id || '').replace(/\D/g,''))||0));
+            generateGujaratiPDF('🎁 દાન દાતાઓની યાદી', sorted, 'donor', 'Donor_List'); 
+        }
+        function downloadMembersPDF() { 
+            let sorted = [...localMembers].sort((a,b) => (parseInt((a.id || '').replace(/\D/g,''))||0) - (parseInt((b.id || '').replace(/\D/g,''))||0));
+            generateGujaratiPDF('👥 સભ્યોની યાદી', sorted, 'member', 'Members_List'); 
+        }
+        function downloadHousePDF() { 
+            let sorted = [...localHouseFunds].sort((a,b) => (parseInt((a.id || '').replace(/\D/g,''))||0) - (parseInt((b.id || '').replace(/\D/g,''))||0));
+            generateGujaratiPDF('🏡 ઘર દીઠ ફાળાની યાદી', sorted, 'house', 'House_Funds_List'); 
+        }
+
+        function downloadFullReportPDF() {
+            document.getElementById('mandal-dropdown').style.display = 'none'; 
+            window.scrollTo(0, 0);
+            
+            let oldWrapper = document.getElementById('pdf-full-wrapper');
+            if(oldWrapper) oldWrapper.remove();
+
+            const printWrapper = document.createElement('div');
+            printWrapper.id = 'pdf-full-wrapper';
+            printWrapper.style.cssText = 'position: absolute; top: 0; left: 0; width: 800px; background: #ffffff; padding: 20px; color: black; font-family: "Noto Sans Gujarati", sans-serif; z-index: 99999;';
+
+            let sortedMembers = [...localMembers].sort((a,b) => (parseInt((a.id || '').replace(/\D/g,''))||0) - (parseInt((b.id || '').replace(/\D/g,''))||0));
+            let sortedHouseFunds = [...localHouseFunds].sort((a,b) => (parseInt((a.id || '').replace(/\D/g,''))||0) - (parseInt((b.id || '').replace(/\D/g,''))||0));
+            let sortedDonors = [...localDonors].sort((a,b) => (parseInt((a.id || '').replace(/\D/g,''))||0) - (parseInt((b.id || '').replace(/\D/g,''))||0));
+            let sortedExpenses = [...localExpenses].sort((a,b) => (parseInt((a.id || '').replace(/\D/g,''))||0) - (parseInt((b.id || '').replace(/\D/g,''))||0));
+            let sortedBox = [...localBoxIncome].sort((a,b) => b.id.localeCompare(a.id));
+
+            let paidCount = 0, totalAmt = 0, totalExp = 0, totalDon = 0, totalHouse = 0, totalBox = 0;
+            sortedMembers.forEach(m => { if (m.status === 'paid' && parseInt(m.amount || 0) > 0) { paidCount++; totalAmt += parseInt(m.amount || 0); } });
+            sortedExpenses.forEach(e => totalExp += parseInt(e.amount || 0));
+            sortedDonors.forEach(d => totalDon += parseInt(d.amount || 0));
+            sortedHouseFunds.forEach(h => totalHouse += parseInt(h.amount || 0));
+            sortedBox.forEach(b => totalBox += parseInt(b.amount || 0));
+            
+            let net = (prevYearSavedBalance + totalAmt + totalHouse + totalDon + totalBox) - totalExp;
+            
+            let isMasked = hideFinancials && !isAdmin;
+
+            let htmlStr = `
+                <style>
+                    .avoid-break {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                        display: inline-block !important;
+                        width: 100%;
+                    }
+                </style>
+                <div data-html2canvas-ignore style="text-align: center; color: #ea580c; font-size: 15px; font-weight: bold; margin-bottom: 20px; padding: 15px; background: #fff7ed; border-radius: 8px; border: 1px solid #fed7aa;">
+                    ⏳ આખા ચોપડાની PDF બની રહી છે...<br>કૃપા કરીને રાહ જુઓ...
+                </div>
+                
+                <div style="max-width: 800px; margin: 0 auto;">
+                    <div class="avoid-break" style="text-align:center; border-bottom:3px solid #ea580c; padding-bottom:15px; margin-bottom:20px;">
+                        <h1 style="color:#ea580c; font-size:22px; margin:0 0 10px 0;">શ્રી પ્રગતિ ગણેશ યુવક મંડળ</h1>
+                        <h2 style="color:#333; font-size:16px; margin:0;">આખો ચોપડો - વર્ષ: ${selectedYear}</h2>
+                    </div>`;
+
+            if (!isMasked) {
+                htmlStr += `
+                    <div class="avoid-break" style="margin-bottom:25px;">
+                        <div style="display:flex; flex-wrap:wrap; gap:10px;">
+                            <div style="width:48%; background:#fffbeb; padding:10px; border:1px solid #fde68a; border-radius:8px; text-align:center; box-sizing:border-box;"><b>ગયા વર્ષની બચત:</b> ₹${prevYearSavedBalance}</div>
+                            <div style="width:48%; background:#eff6ff; padding:10px; border:1px solid #bfdbfe; border-radius:8px; text-align:center; box-sizing:border-box;"><b>સભ્યોનો ફાળો:</b> ₹${totalAmt}</div>
+                            <div style="width:48%; background:#f0fdf4; padding:10px; border:1px solid #bbf7d0; border-radius:8px; text-align:center; box-sizing:border-box;"><b>ઘર દીઠ ફાળો:</b> ₹${totalHouse}</div>
+                            <div style="width:48%; background:#fdf2f8; padding:10px; border:1px solid #fbcfe8; border-radius:8px; text-align:center; box-sizing:border-box;"><b>કુલ દાન:</b> ₹${totalDon}</div>
+                            <div style="width:48%; background:#fef9c3; padding:10px; border:1px solid #fef08a; border-radius:8px; text-align:center; box-sizing:border-box;"><b>આરતી/દાન પેટી:</b> ₹${totalBox}</div>
+                            <div style="width:48%; background:#fee2e2; padding:10px; border:1px solid #fecaca; border-radius:8px; text-align:center; color:#dc2626; box-sizing:border-box;"><b>કુલ ખર્ચ:</b> ₹${totalExp}</div>
+                            <div style="width:100%; background:#faf5ff; padding:12px; border:1px solid #e9d5ff; border-radius:8px; text-align:center; color:#9333ea; font-size:17px; box-sizing:border-box;"><b>કુલ બેલેન્સ:</b> ₹${net}</div>
+                        </div>
+                    </div>`;
+            }
+
+            htmlStr += `<div class="avoid-break" style="background:#f3f4f6; padding:8px; border-radius:6px; border-left:4px solid #ea580c; margin-top:20px; margin-bottom:10px; font-size:16px;"><b>👤 સભ્યવાર ચંદાની વિગત</b></div>
+                        <div style="display:block; margin-bottom:20px;">`;
+            sortedMembers.forEach(m => {
+                let status = (m.status === 'paid' && parseInt(m.amount||0) > 0) ? `<span style="color:#16a34a; font-weight:bold;">₹${m.amount}</span>` : ``;
+                htmlStr += `<div class="avoid-break" style="margin-bottom:8px; width:100%;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px; border:1px solid #e5e7eb; border-radius:6px; background:#fff;">
+                                    <div style="width:70%; font-size:14px;"><span style="color:#6b7280; width:35px; font-weight:bold; display:inline-block;">${(m.id || '').toUpperCase()}</span><span style="font-weight:bold; color:#1e293b;">${m.name}</span></div>
+                                    <div style="width:30%; text-align:right; font-size:14px;">${status}</div>
+                                </div>
+                            </div>`;
+            });
+            htmlStr += `</div>`;
+
+            htmlStr += `<div class="avoid-break" style="background:#f0fdf4; padding:8px; border-radius:6px; border-left:4px solid #16a34a; margin-top:20px; margin-bottom:10px; font-size:16px;"><b>🏡 ઘર દીઠ ફાળાની વિગત</b></div>
+                        <div style="display:block; margin-bottom:20px;">`;
+            sortedHouseFunds.forEach(h => {
+                let amtDisplay = h.amount > 0 ? `<span style="color:#16a34a; font-weight:bold;">₹${h.amount}</span>` : ``;
+                htmlStr += `<div class="avoid-break" style="margin-bottom:8px; width:100%;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px; border:1px solid #e5e7eb; border-radius:6px; background:#fff;">
+                                    <div style="width:70%; font-size:14px;"><span style="color:#6b7280; width:35px; font-weight:bold; display:inline-block;">${(h.id || '').toUpperCase()}</span><span style="font-weight:bold; color:#0f766e;">${h.name}</span></div>
+                                    <div style="width:30%; text-align:right; font-size:14px;">${amtDisplay}</div>
+                                </div>
+                            </div>`;
+            });
+            htmlStr += `</div>`;
+
+            if (!isMasked) {
+                htmlStr += `<div class="avoid-break" style="background:#fdf2f8; padding:8px; border-radius:6px; border-left:4px solid #be185d; margin-top:20px; margin-bottom:10px; font-size:16px;"><b>🎁 દાન દાતાઓની વિગત</b></div>
+                            <div style="display:block; margin-bottom:20px;">`;
+                sortedDonors.forEach(d => {
+                    htmlStr += `<div class="avoid-break" style="margin-bottom:8px; width:100%;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px; border:1px solid #e5e7eb; border-radius:6px; background:#fff;">
+                                        <div style="width:70%; font-size:14px; font-weight:bold;">${d.name}</div>
+                                        <div style="width:30%; text-align:right; font-size:14px; color:#16a34a; font-weight:bold;">₹${d.amount}</div>
+                                    </div>
+                                </div>`;
+                });
+                htmlStr += `</div>`;
+                
+                htmlStr += `<div class="avoid-break" style="background:#fef9c3; padding:8px; border-radius:6px; border-left:4px solid #ca8a04; margin-top:20px; margin-bottom:10px; font-size:16px;"><b>🛕 આરતી અને દાન પેટી વિગત</b></div>
+                            <div style="display:block; margin-bottom:20px;">`;
+                sortedBox.forEach(b => {
+                    htmlStr += `<div class="avoid-break" style="margin-bottom:8px; width:100%;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px; border:1px solid #e5e7eb; border-radius:6px; background:#fff;">
+                                        <div style="width:70%; font-size:14px; font-weight:bold;">${b.title}</div>
+                                        <div style="width:30%; text-align:right; font-size:14px; color:#ca8a04; font-weight:bold;">₹${b.amount}</div>
+                                    </div>
+                                </div>`;
+                });
+                htmlStr += `</div>`;
+            }
+            
+            if (isAdmin) {
+                htmlStr += `<div class="avoid-break" style="background:#fee2e2; padding:8px; border-radius:6px; border-left:4px solid #dc2626; margin-top:20px; margin-bottom:10px; font-size:16px;"><b>💸 ખર્ચની વિગતો</b></div>
+                            <div style="display:block; margin-bottom:20px;">`;
+                sortedExpenses.forEach(e => {
+                    let billTag = e.bill_photo ? " (બિલ જોડાયેલ)" : "";
+                    htmlStr += `<div class="avoid-break" style="margin-bottom:8px; width:100%;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px; border:1px solid #e5e7eb; border-radius:6px; background:#fff;">
+                                        <div style="width:70%; font-size:14px; font-weight:bold;">${e.title}${billTag}</div>
+                                        <div style="width:30%; text-align:right; font-size:14px; color:#dc2626; font-weight:bold;">₹${e.amount}</div>
+                                    </div>
+                                </div>`;
+                });
+                htmlStr += `</div>`;
+            }
+
+            htmlStr += `</div>`; 
+
+            printWrapper.innerHTML = htmlStr;
+            document.body.appendChild(printWrapper);
+
+            setTimeout(() => {
+                const opt = {
+                    margin:       [0.4, 0.3, 0.4, 0.3],
+                    filename:     'Mandal_Report_' + selectedYear + '.pdf',
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { 
+                        scale: 2,
+                        useCORS: true, 
+                        scrollY: 0, 
+                        windowWidth: 800,
+                        letterRendering: true 
+                    },
+                    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' },
+                    pagebreak:    { mode: 'css', avoid: '.avoid-break' }
+                };
+
+                html2pdf().set(opt).from(printWrapper).save().then(() => {
+                    document.body.removeChild(printWrapper);
+                }).catch(err => {
+                    console.error("PDF Error:", err);
+                    alert("PDF બનાવવામાં ભૂલ આવી! કૃપા કરીને ફરી પ્રયાસ કરો.");
+                    if(document.body.contains(printWrapper)) document.body.removeChild(printWrapper);
+                });
+            }, 1200);
+        }
+
+        function openPage(pageId) {
+            document.getElementById('mandal-dropdown').style.display = 'none';
+            document.getElementById('mandal-app-content').style.display = 'none';
+            document.getElementById('prasad-page').style.display = 'none';
+            document.getElementById('notebook-page').style.display = 'none';
+            document.getElementById('tshirt-page').style.display = 'none';
+            document.getElementById('arti-page').style.display = 'none';
+            
+            let target = document.getElementById(pageId);
+            if (target) {
+                target.style.display = 'block';
+                window.scrollTo(0, 0);
+            }
+            
+            if(pageId === 'prasad-page') renderPrasadList();
+            if(pageId === 'notebook-page') renderNotebookList();
+            if(pageId === 'arti-page') renderArtiList();
+            if(pageId === 'tshirt-page') renderTshirtList();
+        }
+
+        function closePage() {
+            document.getElementById('prasad-page').style.display = 'none';
+            document.getElementById('notebook-page').style.display = 'none';
+            document.getElementById('tshirt-page').style.display = 'none';
+            document.getElementById('arti-page').style.display = 'none';
+            document.getElementById('mandal-app-content').style.display = 'block';
+            window.scrollTo(0, 0);
+            refreshUI();
+        }
+
+        function toggleDropdownMenu() { 
+            const menu = document.getElementById('mandal-dropdown'); 
+            menu.style.display = (menu.style.display === 'block') ? 'none' : 'block'; 
+        }
+
+        window.onclick = function(event) { 
+            if (!event.target.matches('.menu-dot-btn') && !event.target.closest('.menu-dot-btn')) { 
+                const dropdown = document.getElementById('mandal-dropdown'); 
+                if (dropdown && dropdown.style.display === 'block') dropdown.style.display = 'none'; 
+            } 
+        }
+
+        function showAppDownloadGuide() { 
+            document.getElementById('mandal-dropdown').style.display = 'none'; 
+            alert("📲 એપ ડાઉનલોડ કરવા માટે:\n\nChrome બ્રાઉઝરમાં ઉપર જમણી બાજુ ખૂણામાં આપેલા ત્રણ ટપકા પર ક્લિક કરો, ત્યારબાદ 'Install app' અથવા 'Add to Home Screen' પસંદ કરો!"); 
+        }
+
+        function openBoxModal(editId = null) {
+            currentBoxEditId = editId;
+            if (editId) {
+                document.getElementById('box-modal-title').innerText = "🛕 વિગત સુધારો";
+                let b = localBoxIncome.find(x => x.id === editId);
+                if (b) {
+                    document.getElementById('box-title-input').value = b.title || "";
+                    document.getElementById('box-amount-input').value = b.amount || "";
+                }
+            } else {
+                document.getElementById('box-modal-title').innerText = "🛕 નવી વિગત ઉમેરો";
+                document.getElementById('box-title-input').value = "";
+                document.getElementById('box-amount-input').value = "";
+            }
+            document.getElementById('box-modal').style.display = "flex";
+        }
+
+        function closeBoxModal() { document.getElementById('box-modal').style.display = "none"; }
+
+        function saveBoxData() {
+            const title = document.getElementById('box-title-input').value.trim();
+            const amount = parseInt(document.getElementById('box-amount-input').value.trim());
+
+            if (!title || isNaN(amount)) return alert("કૃપા કરીને વિગત અને સાચી રકમ લખો!");
+
+            let boxData = { title: title, amount: amount };
+
+            if (currentBoxEditId) {
+                db.collection("mandal_years").doc(selectedYear).collection("box_income").doc(currentBoxEditId).update(boxData)
+                .then(() => { closeBoxModal(); alert("✅ વિગત સુધારી દીધી!"); })
+                .catch(err => alert("ભૂલ: " + err.message));
+            } else {
+                let id = 'b' + Date.now();
+                db.collection("mandal_years").doc(selectedYear).collection("box_income").doc(id).set(boxData)
+                .then(() => { closeBoxModal(); alert("✅ નવી વિગત ઉમેરાઈ ગઈ!"); })
+                .catch(err => alert("ભૂલ: " + err.message));
+            }
+        }
+
+        function openExpenseModal(editId = null) {
+            currentExpEditId = editId;
+            currentExpBillData = "";
+            document.getElementById('exp-bill-input').value = "";
+            document.getElementById('bill-preview-container').style.display = "none";
+            document.getElementById('bill-preview-img').src = "";
+
+            if (editId) {
+                document.getElementById('expense-modal-title').innerText = "💸 ખર્ચ સુધારો";
+                let exp = localExpenses.find(e => e.id === editId);
+                if (exp) {
+                    document.getElementById('exp-title-input').value = exp.title || "";
+                    document.getElementById('exp-amount-input').value = exp.amount || "";
+                    if (exp.bill_photo) {
+                        currentExpBillData = exp.bill_photo;
+                        document.getElementById('bill-preview-img').src = exp.bill_photo;
+                        document.getElementById('bill-preview-container').style.display = "block";
+                    }
+                }
+            } else {
+                document.getElementById('expense-modal-title').innerText = "💸 नવો ખર્ચ ઉમેરો";
+                document.getElementById('exp-title-input').value = "";
+                document.getElementById('exp-amount-input').value = "";
+            }
+            document.getElementById('expense-modal').style.display = "flex";
+        }
+
+        function closeExpenseModal() {
+            document.getElementById('expense-modal').style.display = "none";
+        }
+
+        function previewBillImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    let maxWidth = 800;
+                    let scale = maxWidth / img.width;
+                    if (scale > 1) scale = 1;
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    currentExpBillData = canvas.toDataURL('image/jpeg', 0.7);
+                    document.getElementById('bill-preview-img').src = currentExpBillData;
+                    document.getElementById('bill-preview-container').style.display = "block";
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeBillPhoto() {
+            currentExpBillData = "";
+            document.getElementById('exp-bill-input').value = "";
+            document.getElementById('bill-preview-img').src = "";
+            document.getElementById('bill-preview-container').style.display = "none";
+        }
+
+        function saveExpenseData() {
+            const title = document.getElementById('exp-title-input').value.trim();
+            const amount = parseInt(document.getElementById('exp-amount-input').value.trim());
+
+            if (!title || isNaN(amount)) return alert("કૃપા કરીને ખર્ચનું કારણ અને સાચી રકમ લખો!");
+
+            let expData = { title: title, amount: amount, bill_photo: currentExpBillData || null };
+
+            if (currentExpEditId) {
+                db.collection("mandal_years").doc(selectedYear).collection("expenses").doc(currentExpEditId).update(expData)
+                .then(() => { closeExpenseModal(); alert("✅ ખર્ચ સફળતાપૂર્વક સુધારી દીધો!"); })
+                .catch(err => alert("ભૂલ: " + err.message));
+            } else {
+                let id = 'e' + Date.now();
+                db.collection("mandal_years").doc(selectedYear).collection("expenses").doc(id).set(expData)
+                .then(() => { closeExpenseModal(); alert("✅ નવો ખર્ચ સફળતાપૂર્વક ઉમેરાઈ ગયો!"); })
+                .catch(err => alert("ભૂલ: " + err.message));
+            }
+        }
+
+        function openDonorModal(editId = null) {
+            currentDonorEditId = editId;
+            if (editId) {
+                document.getElementById('donor-modal-title').innerText = "🎁 દાન દાતા સુધારો";
+                let donor = localDonors.find(d => d.id === editId);
+                if (donor) {
+                    document.getElementById('donor-name-input').value = donor.name || "";
+                    document.getElementById('donor-amount-input').value = donor.amount || "";
+                }
+            } else {
+                document.getElementById('donor-modal-title').innerText = "🎁 नવો દાન દાતા ઉમેરો";
+                document.getElementById('donor-name-input').value = "";
+                document.getElementById('donor-amount-input').value = "";
+            }
+            document.getElementById('donor-modal').style.display = "flex";
+        }
+
+        function closeDonorModal() { document.getElementById('donor-modal').style.display = "none"; }
+
+        function saveDonorData() {
+            const name = document.getElementById('donor-name-input').value.trim();
+            const amount = parseInt(document.getElementById('donor-amount-input').value.trim());
+
+            if (!name || isNaN(amount)) return alert("કૃપા કરીને દાતાનું નામ અને સાચી રકમ લખો!");
+
+            let donorData = { name: name, amount: amount };
+
+            if (currentDonorEditId) {
+                db.collection("mandal_years").doc(selectedYear).collection("donors").doc(currentDonorEditId).update(donorData)
+                .then(() => { closeDonorModal(); alert("✅ દાતાની વિગત સુધારી દીધી!"); })
+                .catch(err => alert("ભૂલ: " + err.message));
+            } else {
+                let id = 'd' + Date.now();
+                db.collection("mandal_years").doc(selectedYear).collection("donors").doc(id).set(donorData)
+                .then(() => { closeDonorModal(); alert("✅ નવો દાન દાતા ઉમેરાઈ ગયો!"); })
+                .catch(err => alert("ભૂલ: " + err.message));
+            }
+        }
+
+        function viewBillPhoto(photoUrl, title) {
+            document.getElementById('viewer-img').src = photoUrl;
+            document.getElementById('viewer-title').innerText = "🧾 બિલ: " + title;
+            document.getElementById('image-viewer-modal').style.display = "flex";
+        }
+
+        function closeImageViewer() {
+            document.getElementById('image-viewer-modal').style.display = "none";
+            document.getElementById('viewer-img').src = "";
+        }
+
+        function openTextModal(type, id = null, val1 = "", val2 = "") {
+            currentModalType = type; currentEditId = id;
+            const header = document.getElementById('text-modal-header'); 
+            const input1 = document.getElementById('text-modal-input1'); 
+            const input2 = document.getElementById('text-modal-input2'); 
+            const textarea = document.getElementById('text-modal-textarea');
+            
+            input1.style.display = 'none'; input2.style.display = 'none'; textarea.style.display = 'block';
+
+            if (type === 'arti') { 
+                header.innerHTML = '<i class="fa-solid fa-music"></i> આરતી/થાળ લખો'; 
+                input1.style.display = 'block'; input1.placeholder = "આરતી કે થાળનું નામ..."; 
+                textarea.placeholder = "આરતીનું આખું લખાણ અહી લખો..."; 
+                input1.value = val1; textarea.value = val2; 
+            } else if (type === 'notebook') { 
+                header.innerHTML = '<i class="fa-solid fa-book"></i> નોટબુક નોંધ લખો'; 
+                input2.style.display = 'block'; input2.placeholder = "તારીખ અથવા વાર લખો..."; 
+                textarea.placeholder = "મંડળની નોંધ અહી લખો..."; 
+                input2.value = val2 || new Date().toLocaleDateString('gu-IN'); textarea.value = val1; 
+            } else if (type === 'prasad') { 
+                header.innerHTML = '<i class="fa-solid fa-utensils"></i> પ્રસાદ વિગત લખો'; 
+                input2.style.display = 'block'; input2.placeholder = "તારીખ અથવા સમય લખો..."; 
+                textarea.placeholder = "યજમાનો ના નામ અહી લખો..."; 
+                textarea.value = val1; input2.value = val2 || new Date().toLocaleDateString('gu-IN'); 
+            }
+            document.getElementById('text-input-modal').style.display = 'flex';
+        }
+
+        function closeTextModal() { document.getElementById('text-input-modal').style.display = 'none'; }
+
+        async function saveTextModalData() {
+            const input1 = document.getElementById('text-modal-input1').value.trim(); 
+            const input2 = document.getElementById('text-modal-input2').value.trim(); 
+            const textarea = document.getElementById('text-modal-textarea').value.trim();
+
+            if (currentModalType === 'arti') {
+                if (!input1 || !textarea) return alert("નામ અને લખાણ બંને લખો!");
+                let idToSave = currentEditId; let idNum = 0;
+                if (!idToSave) {
+                    let maxIdNum = 0; localArtiList.forEach(a => { let num = parseInt((a.id || '').replace(/\D/g, '')) || 0; if(num > maxIdNum) maxIdNum = num; });
+                    idToSave = `a${maxIdNum + 1}`; const customId = prompt("🎵 નવી આરતી માટે ID લખો:", idToSave); 
+                    if(!customId) return; idToSave = customId.toLowerCase().trim(); idNum = parseInt(idToSave.replace(/\D/g, '')) || 0;
+                }
+                let newData = { title: input1, lyrics: textarea };
+                if (currentEditId) { db.collection("mandal_years").doc(selectedYear).collection("arti_list").doc(idToSave).update(newData); } 
+                else { 
+                    if (localArtiList.some(a => a.id === idToSave)) { await shiftAndInsert("arti_list", "a", idNum, idToSave, newData); } 
+                    else { db.collection("mandal_years").doc(selectedYear).collection("arti_list").doc(idToSave).set(newData); } 
+                }
+            } else if (currentModalType === 'notebook') {
+                if (!textarea || !input2) return alert("નોંધ અને તારીખ બંને લખો!");
+                let idToSave = currentEditId; let idNum = 0;
+                if (!idToSave) {
+                    let maxIdNum = 0; localNotebookNotes.forEach(n => { let num = parseInt((n.id || '').replace(/\D/g, '')) || 0; if(num > maxIdNum) maxIdNum = num; });
+                    idToSave = `n${maxIdNum + 1}`; const customId = prompt("નોંધ માટે નવો ID લખો:", idToSave); 
+                    if(!customId) return; idToSave = customId.toLowerCase().trim(); idNum = parseInt(idToSave.replace(/\D/g, '')) || 0;
+                }
+                let newData = { content: textarea, date: input2 };
+                if (currentEditId) { db.collection("mandal_years").doc(selectedYear).collection("notebook_notes").doc(idToSave).update(newData); } 
+                else { 
+                    if (localNotebookNotes.some(n => n.id === idToSave)) { await shiftAndInsert("notebook_notes", "n", idNum, idToSave, newData); } 
+                    else { db.collection("mandal_years").doc(selectedYear).collection("notebook_notes").doc(idToSave).set(newData); } 
+                }
+            } else if (currentModalType === 'prasad') {
+                if (!textarea || !input2) return alert("નામ અને તારીખ બંને લખો!");
+                let idToSave = currentEditId; let idNum = 0;
+                if (!idToSave) {
+                    let maxIdNum = 0; localPrasadVari.forEach(p => { let num = parseInt((p.id || '').replace(/\D/g, '')) || 0; if(num > maxIdNum) maxIdNum = num; });
+                    idToSave = `p${maxIdNum + 1}`; const customId = prompt("પ્રસાદ વારી માટે નવો ID લખો:", idToSave); 
+                    if(!customId) return; idToSave = customId.toLowerCase().trim(); idNum = parseInt(idToSave.replace(/\D/g, '')) || 0;
+                }
+                let newData = { name: textarea, date: input2 };
+                if (currentEditId) { db.collection("mandal_years").doc(selectedYear).collection("prasad_vari").doc(idToSave).update(newData); } 
+                else { 
+                    if (localPrasadVari.some(p => p.id === idToSave)) { await shiftAndInsert("prasad_vari", "p", idNum, idToSave, newData); } 
+                    else { db.collection("mandal_years").doc(selectedYear).collection("prasad_vari").doc(idToSave).set(newData); } 
+                }
+            }
+            closeTextModal();
+        }
+
+        function openBulkAddModal(type) {
+            if (!isAdmin) return;
+            currentBulkType = type;
+            const title = document.getElementById('bulk-add-title');
+            const desc = document.getElementById('bulk-add-desc');
+            const textarea = document.getElementById('bulk-add-textarea');
+
+            if(type === 'members') {
+                title.innerHTML = '<i class="fa-solid fa-users"></i> એકસાથે સભ્યો ઉમેરો';
+                desc.innerText = "દરેક સભ્યનું નામ નવી લાઈનમાં લખો.";
+            } else {
+                title.innerHTML = '<i class="fa-solid fa-house-chimney"></i> એકસાથે ઘર ઉમેરો';
+                desc.innerText = "દરેક ઘર/પરિવારનું નામ નવી લાઈનમાં લખો.";
+            }
+            
+            document.getElementById('bulk-add-modal').style.display = 'flex';
+            textarea.value = '';
+        }
+
+        function closeBulkAddModal() {
+            document.getElementById('bulk-add-modal').style.display = 'none';
+        }
+
+        async function saveBulkMembers() {
+            if (!isAdmin) return;
+            const text = document.getElementById('bulk-add-textarea').value;
+            if (!text.trim()) return alert("નામ લખો!");
+            
+            const names = text.split('\n').map(n => n.trim()).filter(n => n !== '');
+            if (names.length === 0) return alert("કોઈ માન્ય નામ મળ્યું નથી.");
+            
+            if (!confirm(`શું તમે ખરેખર ${names.length} નામ ઉમેરવા માંગો છો?`)) return;
+
+            document.getElementById('sync-status').innerText = "⏳ સેવ થઈ રહ્યા છે...";
+            
+            let batch = db.batch();
+            let collectionName = currentBulkType === 'members' ? "members" : "house_funds";
+            let prefix = currentBulkType === 'members' ? 'm' : 'h';
+            let localData = currentBulkType === 'members' ? localMembers : localHouseFunds;
+            
+            let maxIdNum = 0;
+            localData.forEach(item => {
+                let num = parseInt((item.id || '').replace(/\D/g, '')) || 0;
+                if (num > maxIdNum) maxIdNum = num;
+            });
+
+            let colRef = db.collection("mandal_years").doc(selectedYear).collection(collectionName);
+            
+            names.forEach((name) => {
+                maxIdNum++;
+                let newId = `${prefix}${maxIdNum}`;
+                let docRef = colRef.doc(newId);
+                if (currentBulkType === 'members') {
+                    batch.set(docRef, { name: name, status: "pending", amount: 0 });
+                } else {
+                    batch.set(docRef, { name: name, amount: 0 });
+                }
+            });
+
+            try {
+                await batch.commit();
+                alert("✅ નામો સફળતાપૂર્વક ઉમેરાઈ ગયા!");
+                closeBulkAddModal();
+            } catch(e) {
+                alert("ભૂલ: " + e.message);
+            }
+            document.getElementById('sync-status').innerText = "🚀 ઉત્સવ " + selectedYear + " લાઈવ ડેટા એક્ટિવ!";
+        }
+
+        async function shiftAndInsert(col, prefix, insertNum, idToSave, newData) {
+            let items = [];
+            if(col==='arti_list') items = localArtiList;
+            if(col==='notebook_notes') items = localNotebookNotes;
+            if(col==='prasad_vari') items = localPrasadVari;
+            if(col==='tshirt_sizes') items = localTshirtList;
+            if(col==='members') items = localMembers;
+            if(col==='house_funds') items = localHouseFunds;
+
+            let batch = db.batch();
+            let colRef = db.collection("mandal_years").doc(selectedYear).collection(col);
+
+            let toShift = items.filter(item => {
+                let num = parseInt((item.id || '').replace(/\D/g, '')) || 0;
+                return num >= insertNum;
+            });
+
+            let dataToSaveNew = { ...newData };
+            delete dataToSaveNew.id;
+            batch.set(colRef.doc(idToSave), dataToSaveNew);
+
+            toShift.forEach(item => {
+                let num = parseInt((item.id || '').replace(/\D/g, '')) || 0;
+                let newId = prefix + (num + 1);
+                let dataToSave = { ...item };
+                delete dataToSave.id; 
+                batch.set(colRef.doc(newId), dataToSave);
+            });
+
+            let syncText = document.getElementById('sync-status').innerText;
+            document.getElementById('sync-status').innerText = "⏳ નામો ગોઠવાઈ રહ્યા છે...";
+            try {
+                await batch.commit();
+            } catch(e) {
+                alert("ભૂલ: " + e.message);
+            }
+            document.getElementById('sync-status').innerText = syncText;
+        }
+
+        async function shiftAndDelete(col, prefix, deleteId) {
+            if(!confirm("શું તમે ખરેખર ડીલીટ કરવા માંગો છો? (જો વચ્ચેથી ડીલીટ કરશો તો નીચેના નામો આપમેળે ઉપર આવી જશે)")) return;
+
+            if(col === 'expenses' || col === 'donors' || col === 'box_income') {
+                db.collection("mandal_years").doc(selectedYear).collection(col).doc(deleteId).delete();
+                return;
+            }
+
+            let items = [];
+            if(col==='arti_list') items = localArtiList;
+            if(col==='notebook_notes') items = localNotebookNotes;
+            if(col==='prasad_vari') items = localPrasadVari;
+            if(col==='tshirt_sizes') items = localTshirtList;
+            if(col==='members') items = localMembers;
+            if(col==='house_funds') items = localHouseFunds;
+
+            let deleteNum = parseInt(deleteId.replace(/\D/g, '')) || 0;
+            if(!deleteNum) {
+                db.collection("mandal_years").doc(selectedYear).collection(col).doc(deleteId).delete();
+                return;
+            }
+
+            let batch = db.batch();
+            let colRef = db.collection("mandal_years").doc(selectedYear).collection(col);
+
+            let maxNum = deleteNum;
+            items.forEach(item => {
+                let n = parseInt((item.id || '').replace(/\D/g, '')) || 0;
+                if(n > maxNum) maxNum = n;
+            });
+
+            let toShift = items.filter(item => {
+                let num = parseInt((item.id || '').replace(/\D/g, '')) || 0;
+                return num > deleteNum;
+            });
+
+            toShift.forEach(item => {
+                let num = parseInt((item.id || '').replace(/\D/g, '')) || 0;
+                let newId = prefix + (num - 1);
+                let dataToSave = { ...item };
+                delete dataToSave.id;
+                batch.set(colRef.doc(newId), dataToSave);
+            });
+
+            if(maxNum >= deleteNum) {
+                batch.delete(colRef.doc(prefix + maxNum));
+            }
+
+            let syncText = document.getElementById('sync-status').innerText;
+            document.getElementById('sync-status').innerText = "⏳ નામો ગોઠવાઈ રહ્યા છે...";
+            try {
+                await batch.commit();
+            } catch(e) {
+                alert("ભૂલ: " + e.message);
+            }
+            document.getElementById('sync-status').innerText = syncText;
+        }
+
+        function editArtiInline(id) { if(isAdmin) { let item = localArtiList.find(a => a.id === id); if(item) openTextModal('arti', id, item.title, item.lyrics); } }
+        function editNotebookInline(id) { if(isAdmin) { let item = localNotebookNotes.find(a => a.id === id); if(item) openTextModal('notebook', id, item.content, item.date); } }
+        function editPrasadInline(id) { if(isAdmin) { let item = localPrasadVari.find(a => a.id === id); if(item) openTextModal('prasad', id, item.name, item.date); } }
+        
+        function markPaid(id) {
+            let m = localMembers.find(x => x.id === id);
+            if(!m) return;
+            let amt = prompt(`'${m.name}' ની જમા રકમ લખો (₹):`, "");
+            if(amt !== null) {
+                let parsedAmt = parseInt(amt.trim());
+                if(!isNaN(parsedAmt) && parsedAmt > 0) {
+                    db.collection("mandal_years").doc(selectedYear).collection("members").doc(id).update({ status: 'paid', amount: parsedAmt });
+                } else if (parsedAmt === 0) {
+                    db.collection("mandal_years").doc(selectedYear).collection("members").doc(id).update({ status: 'pending', amount: 0 });
+                }
+            }
+        }
+
+        function editMemberAmount(id) {
+            let m = localMembers.find(x => x.id === id);
+            if(!m) return;
+            let amt = prompt(`${m.name} ની રકમ સુધારો (₹):\n(જો રકમ 0 કરવી હોય તો 0 લખો અથવા ખાલી રાખો)`, m.amount || 0);
+            if(amt !== null) {
+                let parsedAmt = parseInt(amt.trim());
+                if(isNaN(parsedAmt)) parsedAmt = 0;
+                db.collection("mandal_years").doc(selectedYear).collection("members").doc(id).update({ 
+                    amount: parsedAmt, 
+                    status: parsedAmt > 0 ? 'paid' : 'pending' 
+                });
+            }
+        }
+
+        function markPending(id) {
+            if(confirm("શું તમે ખરેખર આ સભ્યને બાકીમાં મુકવા માંગો છો?\n(રકમ 0 થઈ જશે)")) {
+                db.collection("mandal_years").doc(selectedYear).collection("members").doc(id).update({ status: 'pending', amount: 0 });
+            }
+        }
+
+        function markHousePaid(id) {
+            let h = localHouseFunds.find(x => x.id === id);
+            if(!h) return;
+            let amt = prompt(`'${h.name}' ની જમા રકમ લખો (₹):`, "");
+            if(amt !== null) {
+                let parsedAmt = parseInt(amt.trim());
+                if(!isNaN(parsedAmt) && parsedAmt > 0) {
+                    db.collection("mandal_years").doc(selectedYear).collection("house_funds").doc(id).update({ amount: parsedAmt });
+                } else if (parsedAmt === 0) {
+                    db.collection("mandal_years").doc(selectedYear).collection("house_funds").doc(id).update({ amount: 0 });
+                }
+            }
+        }
+
+        function editHouseAmount(id) {
+            let h = localHouseFunds.find(x => x.id === id);
+            if(!h) return;
+            let amt = prompt(`${h.name} ની રકમ સુધારો (₹):\n(જો રકમ 0 કરવી હોય તો 0 લખો અથવા ખાલી રાખો)`, h.amount || 0);
+            if(amt !== null) {
+                let parsedAmt = parseInt(amt.trim());
+                if(isNaN(parsedAmt)) parsedAmt = 0;
+                db.collection("mandal_years").doc(selectedYear).collection("house_funds").doc(id).update({ amount: parsedAmt });
+            }
+        }
+
+        function markHousePending(id) {
+            if(confirm("શું તમે ખરેખર આ ઘરને બાકીમાં મુકવા માંગો છો?\n(રકમ 0 થઈ જશે)")) {
+                db.collection("mandal_years").doc(selectedYear).collection("house_funds").doc(id).update({ amount: 0 });
+            }
+        }
+
+        function editMember(id) {
+            let m = localMembers.find(x => x.id === id);
+            if(!m) { alert("આ ID વાળો સભ્ય મળ્યો નથી!"); return; }
+            let name = prompt("નવું નામ લખો:", m.name);
+            if(name) {
+                db.collection("mandal_years").doc(selectedYear).collection("members").doc(id).update({ name: name });
+            }
+        }
+
+        function editHouse(id) {
+            let h = localHouseFunds.find(x => x.id === id);
+            if(!h) { alert("આ ID વાળું ઘર મળ્યું નથી!"); return; }
+            let name = prompt("ઘર/પરિવારનું નામ સુધારો:", h.name);
+            if(name) {
+                db.collection("mandal_years").doc(selectedYear).collection("house_funds").doc(id).update({ name: name });
+            }
+        }
+
+        async function addNewMember() {
+            let name = prompt("નવા સભ્યનું નામ લખો:");
+            if(!name) return;
+            let maxId = 0;
+            localMembers.forEach(m => { let n = parseInt((m.id || '').replace(/\D/g,''))||0; if(n>maxId) maxId = n; });
+            
+            let pos = prompt(`કયા નંબરે નામ ઉમેરવું છે? (છેલ્લે ઉમેરવા ${maxId + 1} જ રાખો)`, maxId + 1);
+            if(!pos || isNaN(pos)) return;
+            let insertNum = parseInt(pos);
+            let idToSave = 'm' + insertNum;
+            let newData = { name: name.trim(), status: 'pending', amount: 0 };
+            
+            if (localMembers.some(m => m.id === idToSave)) {
+                await shiftAndInsert("members", "m", insertNum, idToSave, newData);
+            } else {
+                db.collection("mandal_years").doc(selectedYear).collection("members").doc(idToSave).set(newData);
+            }
+        }
+
+        async function addHouseFund() {
+            let name = prompt("ઘર/પરિવારનું નામ લખો:");
+            if(!name) return;
+            let maxId = 0;
+            localHouseFunds.forEach(h => { let n = parseInt((h.id || '').replace(/\D/g,''))||0; if(n>maxId) maxId = n; });
+            
+            let pos = prompt(`કયા નંબરે ઘર ઉમેરવું છે? (છેલ્લે ઉમેરવા ${maxId + 1} જ રાખો)`, maxId + 1);
+            if(!pos || isNaN(pos)) return;
+            let insertNum = parseInt(pos);
+            let idToSave = 'h' + insertNum;
+            let newData = { name: name.trim(), amount: 0 };
+            
+            if (localHouseFunds.some(h => h.id === idToSave)) {
+                await shiftAndInsert("house_funds", "h", insertNum, idToSave, newData);
+            } else {
+                db.collection("mandal_years").doc(selectedYear).collection("house_funds").doc(idToSave).set(newData);
+            }
+        }
+
+        function toggleAdminMode() {
+            if(isAdmin) { 
+                isAdmin = false; 
+                refreshUI(); 
+                return; 
+            }
+            let pass = prompt("એડમિન પાસવર્ડ લખો:");
+            if(pass === currentAdminPassword) { 
+                isAdmin = true; 
+                refreshUI(); 
+            }
+            else if (pass) { alert("ખોટો પાસવર્ડ!"); }
+        }
+
+        function changeAdminPassword() {
+            let pass = prompt("નવો પાસવર્ડ લખો:");
+            if(pass) {
+                db.collection("mandal_config").doc("app_settings").set({ admin_password: pass }, {merge: true}).then(()=>alert("પાસવર્ડ બદલાઈ ગયો!"));
+            }
+        }
+
+        function toggleFinancialVisibility() {
+            hideFinancials = !hideFinancials;
+            db.collection("mandal_config").doc("app_settings").set({ hide_financials: hideFinancials }, {merge: true});
+        }
+
+        function handleSmartNameEdit() {
+            let type = prompt("શું સુધારવું છે?\n૧. સભ્યનું નામ (1 લખો)\n૨. ઘરનું નામ (2 લખો)", "1");
+            if (type === '1') {
+                let id = prompt("જે સભ્યનું નામ સુધારવું હોય તેનો ID લખો (દા.ત. m1, m2):");
+                if (id) editMember(id.toLowerCase().trim());
+            } else if (type === '2') {
+                let id = prompt("જે ઘરનું નામ સુધારવું હોય તેનો ID લખો (દા.ત. h1, h2):");
+                if (id) editHouse(id.toLowerCase().trim());
+            }
+        }
+
+        async function addTshirt() {
+            if (!isTshirtAdmin) return;
+            const name = prompt("સભ્યનું નામ લખો:"); if (!name) return;
+            const size = prompt("સાઇઝ લખો (M, L, XL):", "L"); if (!size) return;
+            const qtyStr = prompt("નંગ લખો:", "1"); if (!qtyStr || isNaN(qtyStr)) return;
+            const amtStr = prompt("કુલ રકમ (₹):", "350"); if (!amtStr || isNaN(amtStr)) return;
+
+            let maxIdNum = 0; localTshirtList.forEach(t => { let num = parseInt((t.id || '').replace(/\D/g, '')) || 0; if(num > maxIdNum) maxIdNum = num; });
+            
+            let pos = prompt(`કયા નંબરે ટી-શર્ટ ઉમેરવું છે? (છેલ્લે ઉમેરવા ${maxIdNum + 1} જ રાખો)`, maxIdNum + 1);
+            if(!pos || isNaN(pos)) return;
+            let idStr = `t${parseInt(pos)}`;
+            let newData = { name: name.trim(), size: size.trim(), qty: parseInt(qtyStr), amount: parseInt(amtStr), delivered: false };
+            
+            if (localTshirtList.some(t => t.id === idStr)) { await shiftAndInsert("tshirt_sizes", "t", parseInt(pos), idStr, newData); } 
+            else { db.collection("mandal_years").doc(selectedYear).collection("tshirt_sizes").doc(idStr).set(newData); }
+        }
+
+        async function editTshirtInline(id) {
+            if (!isTshirtAdmin) return;
+            let item = localTshirtList.find(t => t.id === id); if (!item) return;
+            const name = prompt("સભ્યનું નામ સુધારો:", item.name); if (!name) return;
+            const size = prompt("સાઇઝ સુધારો:", item.size); if (!size) return;
+            const qtyStr = prompt("નંગ સુધારો:", item.qty || 1); if (!qtyStr || isNaN(qtyStr)) return;
+            const amtStr = prompt("કુલ રકમ (₹) સુધારો:", item.amount || 0); if (!amtStr || isNaN(amtStr)) return;
+
+            db.collection("mandal_years").doc(selectedYear).collection("tshirt_sizes").doc(id).update({
+                name: name.trim(), size: size.trim(), qty: parseInt(qtyStr), amount: parseInt(amtStr)
+            });
+        }
+
+        function toggleTshirtDelivered(id, status) {
+            if (!isTshirtAdmin) return;
+            db.collection("mandal_years").doc(selectedYear).collection("tshirt_sizes").doc(id).update({ delivered: status });
+        }
+
+        function toggleTshirtAdminMode() {
+            if(isTshirtAdmin) { 
+                isTshirtAdmin = false; 
+                document.getElementById('tshirt-login-btn').innerText = "🔐 લોક ખોલો"; 
+                document.getElementById('tshirt-login-btn').style.backgroundColor = "#475569";
+                document.getElementById('tshirt-pass-btn').style.setProperty('display', 'none', 'important');
+                document.getElementById('tshirt-add-btn').style.setProperty('display', 'none', 'important');
+                renderTshirtList(); 
+                return; 
+            }
+            let pass = prompt("ટી-શર્ટ એડમિન પાસવર્ડ લખો:");
+            if(pass === currentTshirtPassword) { 
+                isTshirtAdmin = true; 
+                document.getElementById('tshirt-login-btn').innerText = "🔒 લોક કરો";
+                document.getElementById('tshirt-login-btn').style.backgroundColor = "#dc2626";
+                document.getElementById('tshirt-pass-btn').style.setProperty('display', 'inline-block', 'important');
+                document.getElementById('tshirt-add-btn').style.setProperty('display', 'inline-block', 'important');
+                renderTshirtList(); 
+            } else if (pass) { alert("ખોટો પાસવર્ડ!"); }
+        }
+
+        function changeTshirtPassword() {
+            let pass = prompt("નવો ટી-શર્ટ પાસવર્ડ લખો:");
+            if(pass) {
+                db.collection("mandal_config").doc("app_settings").set({ tshirt_password: pass }, {merge: true}).then(()=>alert("પાસવર્ડ બદલાઈ ગયો!"));
+            }
+        }
+
+        function filterMembers(status) { 
+            currentFilter = status; 
+            document.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active')); 
+            document.getElementById('btn-' + status).classList.add('active'); 
+            refreshUI(); 
+        }
+
+        function triggerLogoUpload() { if(isAdmin) document.getElementById('hidden-logo-file-input').click(); }
+        function handleLogoFileSelect(event) { 
+            if(!isAdmin) return; const file = event.target.files[0]; 
+            if(file) { 
+                const reader = new FileReader(); 
+                reader.onload = function(e) { 
+                    db.collection("mandal_config").doc("app_settings").set({ logo_data: e.target.result }, { merge: true })
+                    .then(() => alert("✅ લોગો બદલાઈ ગયો!")); 
+                }; 
+                reader.readAsDataURL(file); 
+            } 
+        }
+
+        function checkSearchMatch(nameStr, idStr, query) { 
+            if (!query) return true;
+            let cleanQuery = query.toLowerCase().trim(); if (cleanQuery === "") return true; 
+            let nameLower = (nameStr || "").toLowerCase(); let idLower = (idStr || "").toLowerCase(); 
+            if (nameLower.includes(cleanQuery) || idLower.includes(cleanQuery)) return true; 
+
+            const gujMap = {'અ':'a','આ':'a','ઇ':'i','ઈ':'i','ઉ':'u','ઊ':'u','એ':'e','ઐ':'ai','ઓ':'o','ઔ':'au','અં':'an','ક':'k','ખ':'kh','ગ':'g','ઘ':'gh','ચ':'ch','છ':'chh','જ':'j','ઝ':'z','ટ':'t','ઠ':'th','ડ':'d','ઢ':'dh','ણ':'n','ત':'t','થ':'th','દ':'d','ધ':'dh','ન':'n','પ':'p','ફ':'f','બ':'b','ભ':'bh','મ':'m','ય':'y','ર':'r','લ':'l','ળ':'l','વ':'v','શ':'sh','ષ':'sh','સ':'s','હ':'h','ક્ષ':'ksh','જ્ઞ':'gn','ા':'a','િ':'i','ી':'i','ુ':'u','ૂ':'u','ે':'e','ૈ':'ai','ો':'o','ૌ':'au','ં':'n','ઃ':'h','ૃ':'ru','્':''};
+            let romanized = ""; for (let i = 0; i < (nameStr || "").length; i++) { romanized += gujMap[nameStr[i]] || nameStr[i]; }
+
+            function getFuzzy(s) { return s.toLowerCase().replace(/ee/g, 'i').replace(/oo/g, 'u').replace(/w/g, 'v').replace(/ph/g, 'f').replace(/sh/g, 's').replace(/c/g, 'k').replace(/z/g, 'j').replace(/[aeiou\s]/g, ''); }
+            let fQuery = getFuzzy(cleanQuery); let fName = getFuzzy(romanized);
+            return fQuery !== "" && fName.includes(fQuery);
+        }
+
+        async function fetchPreviousYearBalance(year) {
+            let currentY = parseInt(year) || new Date().getFullYear();
+            let accumulated = 0;
+            
+            try {
+                let yearsToCalculate = [];
+                for (let y = 2024; y < currentY; y++) {
+                    yearsToCalculate.push(y.toString());
+                }
+                
+                for (let y of yearsToCalculate) {
+                    try {
+                        let [memSnap, houseSnap, donSnap, expSnap, boxSnap] = await Promise.all([
+                            db.collection("mandal_years").doc(y).collection("members").get(),
+                            db.collection("mandal_years").doc(y).collection("house_funds").get(),
+                            db.collection("mandal_years").doc(y).collection("donors").get(),
+                            db.collection("mandal_years").doc(y).collection("expenses").get(),
+                            db.collection("mandal_years").doc(y).collection("box_income").get()
+                        ]);
+                        
+                        let yIncome = 0;
+                        let yExpense = 0;
+                        
+                        memSnap.forEach(d => {
+                            let data = d.data();
+                            let amt = parseInt(data.amount) || 0;
+                            if (data.status === 'paid' || amt > 0) {
+                                yIncome += amt;
+                            }
+                        });
+                        
+                        houseSnap.forEach(d => { yIncome += parseInt(d.data().amount) || 0; });
+                        donSnap.forEach(d => { yIncome += parseInt(d.data().amount) || 0; });
+                        if(boxSnap) { boxSnap.forEach(d => { yIncome += parseInt(d.data().amount) || 0; }); }
+                        expSnap.forEach(d => { yExpense += parseInt(d.data().amount) || 0; });
+                        
+                        accumulated += (yIncome - yExpense);
+                    } catch (errYear) {
+                        console.log("Year note:", errYear);
+                    }
+                }
+                
+                prevYearSavedBalance = Math.max(0, accumulated);
+            } catch (e) {
+                prevYearSavedBalance = 0;
+            }
+            
+            let el = document.getElementById('prev-year-balance');
+            if (el) el.innerText = `₹${prevYearSavedBalance}`;
+            refreshUI();
+        }
+
+        function copyDataFromPreviousYear() {
+            if (!isAdmin) return; 
+            let prevYear = (parseInt(selectedYear) - 1).toString();
+            if (!confirm(`📋 શું તમે વર્ષ ${prevYear} ના બધા જ સભ્યો, ઘર, પ્રસાદ અને આરતી યાદી વર્ષ ${selectedYear} માં કોપી કરવા માંગો છો?`)) return;
+            
+            db.collection("mandal_years").doc(prevYear).collection("members").get().then((snapshot) => { 
+                if (!snapshot.empty) { let batch = db.batch(); snapshot.forEach((doc) => { batch.set(db.collection("mandal_years").doc(selectedYear).collection("members").doc(doc.id), { name: doc.data().name, status: "pending", amount: 0 }); }); return batch.commit(); } 
+            });
+            db.collection("mandal_years").doc(prevYear).collection("house_funds").get().then((snapshot) => { 
+                if (!snapshot.empty) { let batch = db.batch(); snapshot.forEach((doc) => { batch.set(db.collection("mandal_years").doc(selectedYear).collection("house_funds").doc(doc.id), { name: doc.data().name, amount: 0 }); }); return batch.commit(); } 
+            });
+            db.collection("mandal_years").doc(prevYear).collection("prasad_vari").get().then((snapshot) => { 
+                if (!snapshot.empty) { let batch = db.batch(); snapshot.forEach((doc) => { batch.set(db.collection("mandal_years").doc(selectedYear).collection("prasad_vari").doc(doc.id), { name: doc.data().name, date: doc.data().date }); }); return batch.commit(); } 
+            });
+            
+            db.collection("mandal_years").doc(prevYear).collection("arti_list").get().then((snapshot) => { 
+                if (!snapshot.empty) { let batch = db.batch(); snapshot.forEach((doc) => { if(doc.id !== 'a1') { batch.set(db.collection("mandal_years").doc(selectedYear).collection("arti_list").doc(doc.id), { title: doc.data().title, lyrics: doc.data().lyrics }); } }); return batch.commit(); } 
+            }).then(() => alert("✅ ડેટા સફળતાપૂર્વક કોપી થઈ ગયો!"));
+        }
+
+        function refreshUI() {
+            let isMasked = hideFinancials && !isAdmin;
+
+            document.querySelectorAll('.fin-card').forEach(card => {
+                card.style.setProperty('display', isMasked ? 'none' : 'block', 'important');
+            });
+            
+            const expSec = document.getElementById('expense-section-container');
+            if (expSec) {
+                expSec.style.setProperty('display', (isAdmin || !hideFinancials) ? 'block' : 'none', 'important');
+            }
+
+            const boxSec = document.getElementById('box-section-container');
+            if (boxSec) {
+                boxSec.style.setProperty('display', (isAdmin || !hideFinancials) ? 'block' : 'none', 'important');
+            }
+
+            let globalMembersCount = localMembers.length;
+            let globalPaidCount = 0;
+            let globalCollection = 0;
+            localMembers.forEach(m => {
+                let amt = parseInt(m.amount || 0);
+                if (m.status === 'paid' && amt > 0) { globalPaidCount++; globalCollection += amt; }
+            });
+            
+            let globalPaidHouseCount = 0;
+            let globalHouse = 0;
+            localHouseFunds.forEach(h => {
+                let amt = parseInt(h.amount || 0);
+                globalHouse += amt;
+                if (amt > 0) globalPaidHouseCount++;
+            });
+            
+            let globalDonors = 0;
+            localDonors.forEach(d => globalDonors += parseInt(d.amount || 0));
+            
+            let globalBox = 0;
+            localBoxIncome.forEach(b => globalBox += parseInt(b.amount || 0));
+            
+            let globalExp = 0;
+            localExpenses.forEach(e => globalExp += parseInt(e.amount || 0));
+            
+            document.getElementById('total-members-count').innerText = globalMembersCount;
+            document.getElementById('paid-count').innerText = globalPaidCount;
+            document.getElementById('total-collection').innerText = `₹${globalCollection}`;
+            document.getElementById('total-house-funds').innerText = `₹${globalHouse}`;
+            document.getElementById('paid-house-count').innerText = globalPaidHouseCount;
+            document.getElementById('total-donations').innerText = `₹${globalDonors}`;
+            document.getElementById('total-box-income').innerText = `₹${globalBox}`;
+            document.getElementById('total-expenses').innerText = `₹${globalExp}`;
+            
+            let net = (prevYearSavedBalance + globalCollection + globalHouse + globalDonors + globalBox) - globalExp;
+            document.getElementById('net-balance').innerText = `₹${net}`;
+
+            let membersHtml = '';
+            let filteredMembers = localMembers.filter(m => {
+                let matchesSearch = checkSearchMatch(m.name, m.id, searchQuery);
+                let matchesFilter = true;
+                if (currentFilter === 'paid') matchesFilter = (m.status === 'paid' && parseInt(m.amount||0) > 0);
+                if (currentFilter === 'pending') matchesFilter = (m.status === 'pending' || parseInt(m.amount||0) === 0);
+                return matchesSearch && matchesFilter;
+            });
+
+            filteredMembers.sort((a,b) => (parseInt(a.id.replace(/\D/g,''))||0) - (parseInt(b.id.replace(/\D/g,''))||0));
+
+            filteredMembers.forEach(m => {
+                let amt = parseInt(m.amount || 0);
+                let btnHtml = isAdmin ? `
+                    <button onclick="shiftAndDelete('members', 'm', '${m.id}')" class="action-icon-btn btn-del" style="margin-right:8px; padding:4px 7px;"><i class="fa-solid fa-trash"></i></button>
+                ` : '';
+
+                let editAmtBtn = isAdmin ? `<button onclick="editMemberAmount('${m.id}')" title="રકમ સુધારો" style="background:#fff7ed; border:1px solid #fdba74; color:#ea580c; cursor:pointer; font-size:12px; margin-right:8px; padding: 4px 8px; border-radius: 6px;"><i class="fa-solid fa-pen"></i></button>` : '';
+
+                let statusBadge = (m.status === 'paid' && amt > 0) 
+                    ? `<span class="badge-paid" onclick="${isAdmin ? `markPending('${m.id}')` : ''}">₹${amt} ${isAdmin?'<i class="fa-solid fa-xmark" style="color:red; margin-left:3px;"></i>':''}</span>`
+                    : (isAdmin ? `<button class="btn-admin-pay" onclick="markPaid('${m.id}')">જમા કરો</button>` : ``);
+
+                membersHtml += `<div class="row-item">
+                    <div style="display:flex; align-items:center;">
+                        ${btnHtml}
+                        <span style="color:#94a3b8; font-size:12px; margin-right:6px; font-weight:700;">${m.id.toUpperCase()}</span> 
+                        <b>${m.name}</b>
+                    </div>
+                    <div style="display:flex; align-items:center;">
+                        ${editAmtBtn}
+                        ${statusBadge}
+                    </div>
+                </div>`;
+            });
+            document.getElementById('members-list').innerHTML = membersHtml || "<p style='text-align:center;color:#94a3b8;padding:15px 0;'>કોઈ સભ્ય નથી</p>";
+
+            let houseHtml = '';
+            localHouseFunds.filter(h => checkSearchMatch(h.name, h.id, searchQuery)).sort((a,b) => (parseInt(a.id.replace(/\D/g,''))||0) - (parseInt(b.id.replace(/\D/g,''))||0)).forEach(h => {
+                let amt = parseInt(h.amount || 0);
+                let btnHtmlHouse = isAdmin ? `
+                    <button onclick="shiftAndDelete('house_funds', 'h', '${h.id}')" class="action-icon-btn btn-del" style="margin-right:8px; padding:4px 7px;"><i class="fa-solid fa-trash"></i></button>
+                ` : '';
+                
+                let editAmtBtnHouse = isAdmin ? `<button onclick="editHouseAmount('${h.id}')" title="રકમ સુધારો" style="background:#fff7ed; border:1px solid #fdba74; color:#ea580c; cursor:pointer; font-size:12px; margin-right:8px; padding: 4px 8px; border-radius: 6px;"><i class="fa-solid fa-pen"></i></button>` : '';
+
+                let statusBadgeHouse = (amt > 0) 
+                    ? `<span class="badge-paid" onclick="${isAdmin ? `markHousePending('${h.id}')` : ''}">₹${amt} ${isAdmin?'<i class="fa-solid fa-xmark" style="color:red; margin-left:3px;"></i>':''}</span>`
+                    : (isAdmin ? `<button class="btn-admin-pay" onclick="markHousePaid('${h.id}')">જમા કરો</button>` : ``);
+
+                houseHtml += `<div class="row-item">
+                    <div style="display:flex; align-items:center;">
+                        ${btnHtmlHouse}
+                        <span style="color:#94a3b8; font-size:12px; margin-right:6px; font-weight:700;">${h.id.toUpperCase()}</span> 
+                        <b>${h.name}</b>
+                    </div>
+                    <div style="display:flex; align-items:center;">
+                        ${editAmtBtnHouse}
+                        ${statusBadgeHouse}
+                    </div>
+                </div>`;
+            });
+            document.getElementById('house-list').innerHTML = houseHtml || "<p style='text-align:center;color:#94a3b8;padding:15px 0;'>કોઈ ઘર નથી</p>";
+
+            let donHtml = '';
+            localDonors.filter(d => checkSearchMatch(d.name, d.id, searchQuery)).sort((a,b) => (parseInt(a.id.replace(/\D/g,''))||0) - (parseInt(b.id.replace(/\D/g,''))||0)).forEach(d => {
+                let amt = parseInt(d.amount || 0);
+                let btnHtmlDon = isAdmin ? `
+                    <button onclick="shiftAndDelete('donors', 'd', '${d.id}')" class="action-icon-btn btn-del" style="margin-right:4px; padding:4px 7px;"><i class="fa-solid fa-trash"></i></button>
+                    <button onclick="openDonorModal('${d.id}')" class="action-icon-btn btn-edt" style="margin-right:8px; padding:4px 7px;"><i class="fa-solid fa-pen"></i></button>
+                ` : '';
+                donHtml += `<div class="row-item">
+                    <div style="display:flex; align-items:center;">
+                        ${btnHtmlDon}
+                        <b>${d.name}</b>
+                    </div>
+                    <div style="display:flex; align-items:center;">
+                        <b style="color:#16a34a; margin-left:8px;">₹${amt}</b>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('donors-list').innerHTML = donHtml || "<p style='text-align:center;color:#94a3b8;padding:15px 0;'>કોઈ દાતા નથી</p>";
+
+            let boxHtml = '';
+            localBoxIncome.filter(b => checkSearchMatch(b.title, b.id, searchQuery)).sort((a,b) => b.id.localeCompare(a.id)).forEach(b => {
+                let amt = parseInt(b.amount || 0);
+                let btnHtmlBox = isAdmin ? `
+                    <button onclick="shiftAndDelete('box_income', 'b', '${b.id}')" class="action-icon-btn btn-del" style="margin-right:4px; padding:4px 7px;"><i class="fa-solid fa-trash"></i></button>
+                    <button onclick="openBoxModal('${b.id}')" class="action-icon-btn btn-edt" style="margin-right:8px; padding:4px 7px;"><i class="fa-solid fa-pen"></i></button>
+                ` : '';
+                boxHtml += `<div class="row-item">
+                    <div style="display:flex; align-items:center;">
+                        ${btnHtmlBox}
+                        <b>${b.title}</b>
+                    </div>
+                    <div style="display:flex; align-items:center;">
+                        <b style="color:#ca8a04; margin-left:8px;">₹${amt}</b>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('box-list').innerHTML = boxHtml || "<p style='text-align:center;color:#94a3b8;padding:15px 0;'>કોઈ વિગત નથી</p>";
+
+            let expHtml = '';
+            localExpenses.filter(e => checkSearchMatch(e.title, e.id, searchQuery)).sort((a,b) => (parseInt(a.id.replace(/\D/g,''))||0) - (parseInt(b.id.replace(/\D/g,''))||0)).forEach(e => {
+                let amt = parseInt(e.amount || 0);
+                let btnHtmlExp = isAdmin ? `
+                    <button onclick="shiftAndDelete('expenses', 'e', '${e.id}')" class="action-icon-btn btn-del" style="margin-right:4px; padding:4px 7px;"><i class="fa-solid fa-trash"></i></button>
+                    <button onclick="openExpenseModal('${e.id}')" class="action-icon-btn btn-edt" style="margin-right:8px; padding:4px 7px;"><i class="fa-solid fa-pen"></i></button>
+                ` : '';
+                let billBtn = e.bill_photo ? `<button onclick="viewBillPhoto('${e.bill_photo}', '${e.title}')" class="btn-view-bill"><i class="fa-solid fa-receipt"></i> બિલ</button>` : '';
+                expHtml += `<div class="row-item">
+                    <div style="display:flex; align-items:center;">
+                        ${btnHtmlExp}
+                        <b>${e.title}</b>
+                    </div>
+                    <div style="display:flex; align-items:center;">
+                        ${billBtn} <b style="color:#dc2626; margin-left:8px;">₹${amt}</b>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('expenses-list').innerHTML = expHtml || "<p style='text-align:center;color:#94a3b8;padding:15px 0;'>કોઈ ખર્ચ નથી</p>";
+
+            document.getElementById('admin-title').innerText = isAdmin ? "🔓 એડમિન મોડ ચાલુ છે" : "🔒 પબ્લિક મોડ (રીડ-ઓન્લી)";
+            document.getElementById('login-toggle-btn').innerText = isAdmin ? "🔒 એડમિન લોક करो" : "🔐 એડમિન લોક ખોલો";
+            document.getElementById('login-toggle-btn').className = isAdmin ? "btn-action bg-red" : "btn-action bg-gray";
+
+            document.querySelectorAll('.hidden-admin').forEach(el => {
+                el.style.setProperty("display", isAdmin ? "inline-block" : "none", "important");
+            });
+        }
+
+        function renderPrasadList() {
+            let html = '';
+            localPrasadVari.filter(p => checkSearchMatch(p.name, p.id, prasadSearchQuery))
+            .sort((a,b) => (parseInt(a.id.replace(/\D/g,''))||0) - (parseInt(b.id.replace(/\D/g,''))||0))
+            .forEach(p => {
+                let btnHtml = isAdmin ? `
+                    <button onclick="shiftAndDelete('prasad_vari', 'p', '${p.id}')" class="action-icon-btn btn-del" style="margin-right:4px;"><i class="fa-solid fa-trash"></i></button>
+                    <button onclick="editPrasadInline('${p.id}')" class="action-icon-btn btn-edt" style="margin-right:10px;"><i class="fa-solid fa-pen"></i></button>
+                ` : '';
+                html += `<div class="subpage-card">
+                    <div class="subpage-top">
+                        <div style="display:flex; align-items:center;">
+                            ${btnHtml}
+                            <span style="color:#c2410c; font-weight:bold;"><i class="fa-solid fa-calendar-day"></i> ${p.date}</span>
+                        </div>
+                    </div>
+                    <div class="subpage-content">${p.name.replace(/\n/g, '<br>')}</div>
+                </div>`;
+            });
+            document.getElementById('prasad-list').innerHTML = html || "<p style='text-align:center;color:#94a3b8;padding:15px 0;'>કોઈ માહિતી નથી</p>";
+        }
+
+        function renderNotebookList() {
+            let html = '';
+            localNotebookNotes.filter(n => checkSearchMatch(n.content, n.id, notebookSearchQuery))
+            .sort((a,b) => (parseInt(a.id.replace(/\D/g,''))||0) - (parseInt(b.id.replace(/\D/g,''))||0))
+            .forEach(n => {
+                let btnHtml = isAdmin ? `
+                    <button onclick="shiftAndDelete('notebook_notes', 'n', '${n.id}')" class="action-icon-btn btn-del" style="margin-right:4px;"><i class="fa-solid fa-trash"></i></button>
+                    <button onclick="editNotebookInline('${n.id}')" class="action-icon-btn btn-edt" style="margin-right:10px;"><i class="fa-solid fa-pen"></i></button>
+                ` : '';
+                html += `<div class="subpage-card">
+                    <div class="subpage-top">
+                        <div style="display:flex; align-items:center;">
+                            ${btnHtml}
+                            <span style="color:#7e22ce; font-weight:bold;"><i class="fa-solid fa-clock"></i> ${n.date}</span>
+                        </div>
+                    </div>
+                    <div class="subpage-content">${n.content.replace(/\n/g, '<br>')}</div>
+                </div>`;
+            });
+            document.getElementById('notebook-list').innerHTML = html || "<p style='text-align:center;color:#94a3b8;padding:15px 0;'>કોઈ નોંધ નથી</p>";
+        }
+
+        function renderArtiList() {
+            let html = '';
+            localArtiList.filter(a => checkSearchMatch(a.title, a.id, artiSearchQuery))
+            .sort((a,b) => (parseInt(a.id.replace(/\D/g,''))||0) - (parseInt(b.id.replace(/\D/g,''))||0))
+            .forEach(a => {
+                let btnHtml = isAdmin ? `
+                    <button onclick="shiftAndDelete('arti_list', 'a', '${a.id}')" class="action-icon-btn btn-del" style="margin-right:4px;"><i class="fa-solid fa-trash"></i></button>
+                    <button onclick="editArtiInline('${a.id}')" class="action-icon-btn btn-edt" style="margin-right:10px;"><i class="fa-solid fa-pen"></i></button>
+                ` : '';
+                html += `<div class="subpage-card">
+                    <div class="subpage-top">
+                        <div style="display:flex; align-items:center;">
+                            ${btnHtml}
+                            <span style="color:#ea580c; font-weight:bold; font-size:15px;">${a.title}</span>
+                        </div>
+                    </div>
+                    <div class="subpage-content">${a.lyrics.replace(/\n/g, '<br>')}</div>
+                </div>`;
+            });
+            document.getElementById('arti-list').innerHTML = html || "<p style='text-align:center;color:#94a3b8;padding:15px 0;'>કોઈ આરતી નથી</p>";
+        }
+
+        function renderTshirtList() {
+            let totalQ = 0;
+            let totalA = 0;
+            let sizeCounts = {};
+
+            let filtered = localTshirtList.filter(t => checkSearchMatch(t.name, t.id, tshirtSearchQuery))
+            .sort((a,b) => (parseInt(a.id.replace(/\D/g,''))||0) - (parseInt(b.id.replace(/\D/g,''))||0));
+
+            filtered.forEach(t => {
+                let q = parseInt(t.qty || 1);
+                let s = (t.size || "Unknown").toUpperCase().trim();
+                totalQ += q;
+                totalA += parseInt(t.amount || 0);
+                sizeCounts[s] = (sizeCounts[s] || 0) + q;
+            });
+
+            let summaryHtml = `<div style="background: white; padding: 12px; border-radius: 12px; margin-bottom: 15px; box-shadow: var(--card-shadow); border: 1px solid #f1f5f9;">
+                <div style="font-weight: bold; color: #1e3a8a; display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span>👕 કુલ નંગ: ${totalQ}</span>
+                    <span>💰 કુલ રકમ: ₹${totalA}</span>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px;">`;
+            for (const [size, count] of Object.entries(sizeCounts)) {
+                summaryHtml += `<span style="background: #eff6ff; padding: 4px 8px; border-radius: 6px; border: 1px solid #bfdbfe; color: #1e3a8a;"><b>${size}</b>: ${count}</span>`;
+            }
+            summaryHtml += `</div></div>`;
+            
+            document.getElementById('tshirt-summary-container').innerHTML = filtered.length > 0 ? summaryHtml : '';
+
+            let listHtml = '';
+            filtered.forEach(t => {
+                let btnHtml = isTshirtAdmin ? `
+                    <button onclick="shiftAndDelete('tshirt_sizes', 't', '${t.id}')" class="action-icon-btn btn-del" style="margin-right:4px;"><i class="fa-solid fa-trash"></i></button>
+                    <button onclick="editTshirtInline('${t.id}')" class="action-icon-btn btn-edt" style="margin-right:10px;"><i class="fa-solid fa-pen"></i></button>
+                ` : '';
+                let statusBtn = isTshirtAdmin ? `
+                    <button onclick="toggleTshirtDelivered('${t.id}', ${!t.delivered})" style="background:${t.delivered?'#16a34a':'#dc2626'}; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">
+                        ${t.delivered ? '✅ અપાઈ ગયું' : 'બાકી છે'}
+                    </button>
+                ` : `<span style="font-size:12px; font-weight:bold; color:${t.delivered?'#16a34a':'#dc2626'}">${t.delivered ? '✅ અપાઈ ગયું' : 'બાકી છે'}</span>`;
+                
+                listHtml += `<div class="subpage-card" style="border-left: 4px solid ${t.delivered?'#16a34a':'#dc2626'};">
+                    <div class="subpage-top" style="margin-bottom:4px;">
+                        <div style="display:flex; align-items:center;">
+                            ${btnHtml}
+                            <span style="font-weight:bold; color:#1e3a8a;">${t.id.toUpperCase()}. ${t.name}</span>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                        <span style="color:#4b5563;">👕 સાઇઝ: <b style="color:#2563eb;">${t.size}</b> | નંગ: <b>${t.qty||1}</b> | 💰 <b>₹${t.amount||0}</b></span>
+                        ${statusBtn}
+                    </div>
+                </div>`;
+            });
+            document.getElementById('tshirt-list').innerHTML = listHtml || "<p style='text-align:center;color:#94a3b8;padding:15px 0;'>કોઈ માહિતી નથી</p>";
+        }
+
+        function startLiveSync() {
+            if (unsubMembers) unsubMembers(); if (unsubExpenses) unsubExpenses(); if (unsubDonors) unsubDonors(); if (unsubHouseFunds) unsubHouseFunds(); if (unsubPrasad) unsubPrasad(); if (unsubSettings) unsubSettings(); if (unsubNotebook) unsubNotebook(); if (unsubArti) unsubArti(); if (unsubTshirt) unsubTshirt(); if (unsubBoxIncome) unsubBoxIncome();
+            
+            fetchPreviousYearBalance(selectedYear);
+            
+            unsubSettings = db.collection("mandal_config").doc("app_settings").onSnapshot((doc) => { 
+                if(doc.exists) {
+                    if(doc.data().logo_data) document.getElementById('mandal-logo-img').src = doc.data().logo_data; 
+                    if(doc.data().tshirt_password !== undefined) currentTshirtPassword = doc.data().tshirt_password;
+                    if(doc.data().admin_password !== undefined) currentAdminPassword = doc.data().admin_password;
+                    if(doc.data().hide_financials !== undefined) hideFinancials = doc.data().hide_financials;
+                }
+                const hideBtn = document.getElementById('hide-fin-btn');
+                if (hideBtn) {
+                    hideBtn.innerHTML = hideFinancials ? "👁️ પબ્લિકને આંકડા બતાવો" : "👁️ પબ્લિકથી આંકડા છુપાવો";
+                    hideBtn.style.backgroundColor = hideFinancials ? "#16a34a" : "#475569";
+                }
+                refreshUI();
+            });
+            
+            unsubMembers = db.collection("mandal_years").doc(selectedYear).collection("members").onSnapshot((snapshot) => { 
+                localMembers = []; snapshot.forEach(doc => localMembers.push({ id: doc.id, ...doc.data() })); 
+                refreshUI(); 
+            });
+            unsubExpenses = db.collection("mandal_years").doc(selectedYear).collection("expenses").onSnapshot((snapshot) => { 
+                localExpenses = []; snapshot.forEach(doc => localExpenses.push({ id: doc.id, ...doc.data() })); refreshUI(); 
+            });
+            unsubDonors = db.collection("mandal_years").doc(selectedYear).collection("donors").onSnapshot((snapshot) => { 
+                localDonors = []; snapshot.forEach(doc => localDonors.push({ id: doc.id, ...doc.data() })); refreshUI(); 
+            });
+            unsubBoxIncome = db.collection("mandal_years").doc(selectedYear).collection("box_income").onSnapshot((snapshot) => { 
+                localBoxIncome = []; snapshot.forEach(doc => localBoxIncome.push({ id: doc.id, ...doc.data() })); refreshUI(); 
+            });
+            unsubHouseFunds = db.collection("mandal_years").doc(selectedYear).collection("house_funds").onSnapshot((snapshot) => { 
+                localHouseFunds = []; snapshot.forEach(doc => localHouseFunds.push({ id: doc.id, ...doc.data() })); refreshUI(); 
+            });
+            unsubPrasad = db.collection("mandal_years").doc(selectedYear).collection("prasad_vari").onSnapshot((snapshot) => { 
+                localPrasadVari = []; snapshot.forEach(doc => localPrasadVari.push({ id: doc.id, ...doc.data() })); 
+                if(document.getElementById('prasad-page').style.display === 'block') renderPrasadList(); 
+            });
+            unsubNotebook = db.collection("mandal_years").doc(selectedYear).collection("notebook_notes").onSnapshot((snapshot) => { 
+                localNotebookNotes = []; snapshot.forEach(doc => localNotebookNotes.push({ id: doc.id, ...doc.data() })); 
+                if(document.getElementById('notebook-page').style.display === 'block') renderNotebookList(); 
+            });
+            unsubTshirt = db.collection("mandal_years").doc(selectedYear).collection("tshirt_sizes").onSnapshot((snapshot) => { 
+                localTshirtList = []; snapshot.forEach(doc => localTshirtList.push({ id: doc.id, ...doc.data() })); 
+                if(document.getElementById('tshirt-page').style.display === 'block') renderTshirtList(); 
+            });
+            unsubArti = db.collection("mandal_years").doc(selectedYear).collection("arti_list").onSnapshot((snapshot) => { 
+                localArtiList = []; snapshot.forEach(doc => localArtiList.push({ id: doc.id, ...doc.data() })); 
+                let hasMainArti = localArtiList.some(a => a.id === 'a1'); 
+                if(!hasMainArti) { 
+                    db.collection("mandal_years").doc(selectedYear).collection("arti_list").doc('a1').set({ 
+                        title: "જય ગણેશ જય ગણેશ દેવા (આરતી)", 
+                        lyrics: "જય ગણેશ જય ગણેશ, જય ગણેશ દેવા ।\nમાતા જાકી પાર્વતી, પિતા મહાદેવા ॥\n\nએક દંત દયાવંત, ચાર ભુજા ધારી ।\nમાથે સિંદૂર સોહે, મૂષકની સવારી ॥\n\nપાન ચઢે ફૂલ ચઢે, ઔર ચઢે મેવા ।\nલડ્ડુઅન કા ભોગ લાગે, સંત કરેં સેવા ॥\n\nજય ગણેશ જય ગણેશ, જય ગણેશ દેવા ।\nમાતા જાકી પાર્વતી, પિતા મહાદેવા ॥" 
+                    }); 
+                } 
+                if(document.getElementById('arti-page').style.display === 'block') renderArtiList(); 
+            });
+        }
+
+        document.getElementById('year-input').addEventListener('input', (e) => { 
+            let val = e.target.value.trim(); 
+            if (val.length === 4 && !isNaN(val)) {
+                selectedYear = val;
+                startLiveSync();
+            }
+        });
+
+        document.getElementById('search-input').addEventListener('input', (e) => { 
+            searchQuery = e.target.value;
+            refreshUI(); 
+        });
+
+        startLiveSync();
+    </script>
+</body>
+</html>
